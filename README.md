@@ -3,17 +3,20 @@ LYNQ-Chat-App
 📱 LYNQ – A Privacy-First, Smart Messaging App LYNQ is an end-to-end encrypted, cross-platform messaging application built to redefine secure and intelligent communication. It combines cutting-edge cryptography, real-time communication, and AI-powered features to ensure not just privacy but also a smarter user experience. Designed for mobile platforms, LYNQ empowers users to communicate securely, lookup word meaning and verify shared content.
 
 🚀 Project Status (As of August 15, 2025)
+
 This project is currently in the initial setup phase. Here's a summary of what has been completed:
 •	Project Initialization: A new React Native project has been created in the LYNQChatApp directory.
 •	Firebase Integration:
 o	The core Firebase dependencies (@react-native-firebase/app and @react-native-firebase/auth) have been added to the project.
 o	The native Android project has been configured to connect with Firebase. The build.gradle files have been updated, and the google-services.json file has been added.
 🚨 Current Blockers
+
 The project is currently not buildable due to a local environment configuration issue.
 1.	Android SDK Location: The build will fail until the local path to the Android SDK is correctly configured.
 2.	Emulator/Device: An Android emulator must be running or a physical device must be connected to launch the application.
 
 🛠️ Development Setup
+
 Follow these steps to get the development environment up and running.
 Prerequisites
 •	Node.js
@@ -38,8 +41,10 @@ Example on Windows: sdk.dir=C:\Users\YourUsername\AppData\Local\Android\Sdk Exam
 npx react-native run-android
 
 📝 Original App Concept
+
 Features
 🔐 Basic Features:
+
 •	Real-Time Chat – Send and receive messages instantly with WebSockets.
 •	End-to-End Encryption – All messages are protected using X25519 (Key Exchange), ChaCha20-Poly1305(AEAD) and Poly1305 (MAC).
 •	User Authentication – Secure login and registration system using Firebase Auth.
@@ -47,6 +52,7 @@ Features
 •	Media Sharing – Securely share images and files within chat.
 •	Group Chats – Encrypted group chat support with synchronized messages.
 📡 Advanced Features:
+
 •	Auto-Blocks Unsafe Links – If a malicious link is detected, the link can be blocked until the user approves it.
 •	Word Lookup - Lookup for word meanings within the chat itself.
 •	Realtime Translation to English - Translate a message of a different language to english for understanding.
@@ -65,6 +71,7 @@ Supported Platforms
 •	Mobile: Planned support via React Native
 
 📂 Project Structure
+
 The LYNQ-Chat-App project is organized for scalable, cross-platform mobile development. Below is an overview of the main files and folders:
 LYNQChatApp/
 ├── android/                # Native Android project (Gradle, Java/Kotlin, resources)
@@ -104,6 +111,7 @@ LYNQChatApp/
 This structure ensures clear separation of concerns, maintainability, and ease of scaling for new features and platforms. Each feature is modularized under src/features, and platform-specific code is isolated in android/ and ios/ directories. Automated tests are placed in __tests__ to support robust development workflows.
 
 🤝 Team
+
 •	Mirdula R
 •	Piriyadharshini L K
 •	Tayanithaa N S
