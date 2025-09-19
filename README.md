@@ -1,4 +1,5 @@
 LYNQ-Chat-App
+
 📱 LYNQ – A Privacy-First, Smart Messaging App LYNQ is an end-to-end encrypted, cross-platform messaging application built to redefine secure and intelligent communication. It combines cutting-edge cryptography, real-time communication, and AI-powered features to ensure not just privacy but also a smarter user experience. Designed for mobile platforms, LYNQ empowers users to communicate securely, lookup word meaning and verify shared content.
 
 🚀 Project Status (As of August 15, 2025)
