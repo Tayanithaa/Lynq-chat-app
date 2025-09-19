@@ -74,40 +74,75 @@ Supported Platforms
 
 The LYNQ-Chat-App project is organized for scalable, cross-platform mobile development. Below is an overview of the main files and folders:
 LYNQChatApp/
-├── android/                # Native Android project (Gradle, Java/Kotlin, resources)
+
+├── android/ # Native Android project (Gradle, Java/Kotlin, resources)
+
 │   └── app/
+
 │       └── src/
+
 │           └── main/
+
 │               ├── java/com/lynqchatapp/   # MainActivity.kt, MainApplication.kt
+
 │               └── res/                    # Drawables, mipmaps, values
+
 ├── ios/                    # Native iOS project (Swift, Storyboard, assets)
+
 │   └── LYNQChatApp/
+
 │       ├── AppDelegate.swift
+
 │       ├── Images.xcassets/
+
 │       ├── Info.plist
+
 │       └── LaunchScreen.storyboard
+
 ├── src/                    # Application source code
+
 │   ├── api/                # API integration
+
 │   ├── assets/             # Static assets (images, fonts, etc.)
+
 │   ├── components/         # Reusable UI components
+
 │   ├── config/             # Configuration files
-│   ├── features/           # Feature modules
+
+│   ├── features/           # Feature module
+s
 │   │   ├── auth/           # Authentication logic
+
 │   │   ├── chat/           # Chat functionality
+
 │   │   ├── linkVerification/ # Link safety checks
+
 │   │   ├── media/          # Media sharing
+
 │   │   ├── translation/    # Message translation
+
 │   │   └── wordLookup/     # Word meaning lookup
+
 │   ├── navigation/         # Navigation setup
+
 │   ├── screens/            # App screens
+
 │   ├── services/           # Service layer (business logic)
+
 │   └── utils/              # Utility functions
+
 ├── __tests__/              # Unit and integration tests
+
 ├── App.tsx                 # Main app entry point
+
 ├── index.js                # App bootstrap
+
 ├── package.json            # Project metadata and dependencies
+
 ├── README.md               # Project documentation
+
 └── ...other config and build files
+
 This structure ensures clear separation of concerns, maintainability, and ease of scaling for new features and platforms. Each feature is modularized under src/features, and platform-specific code is isolated in android/ and ios/ directories. Automated tests are placed in __tests__ to support robust development workflows.
 
 🤝 Team
