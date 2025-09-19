@@ -1,162 +1,292 @@
-LYNQ-Chat-App
+# LYNQ Chat App 📱
 
-📱 LYNQ – A Privacy-First, Smart Messaging App LYNQ is an end-to-end encrypted, cross-platform messaging application built to redefine secure and intelligent communication. It combines cutting-edge cryptography, real-time communication, and AI-powered features to ensure not just privacy but also a smarter user experience. Designed for mobile platforms, LYNQ empowers users to communicate securely, lookup word meaning and verify shared content.
+A modern, real-time chat application built with React Native, Expo, and Firebase. Features user authentication, real-time messaging, and a beautiful gradient UI.
 
-🚀 Project Status (As of August 15, 2025)
+## 🚀 Features
 
-This project is currently in the initial setup phase. Here's a summary of what has been completed:
+- **User Authentication**: Email/Password and Phone number authentication
+- **Real-time Messaging**: Chat with other users in real-time
+- **OTP Verification**: Secure phone number verification with OTP
+- **Beautiful UI**: Modern gradient design with smooth animations
+- **Cross-platform**: Works on iOS, Android, and Web
+- **Firebase Integration**: Secure backend with Firebase Auth and Firestore
+- **MongoDB Backend**: Node.js/Express backend with MongoDB for user data
 
-•	Project Initialization: A new React Native project has been created in the LYNQChatApp directory.
-•	Firebase Integration:
-o	The core Firebase dependencies (@react-native-firebase/app and @react-native-firebase/auth) have been added to the project.
-o	The native Android project has been configured to connect with Firebase. The build.gradle files have been updated, and the google-services.json file has been added.
-🚨 Current Blockers
+## 📋 Prerequisites
 
-The project is currently not buildable due to a local environment configuration issue.
+Before running this app, make sure you have the following installed:
 
-1.	Android SDK Location: The build will fail until the local path to the Android SDK is correctly configured.
-2.	Emulator/Device: An Android emulator must be running or a physical device must be connected to launch the application.
+- [Node.js](https://nodejs.org/) (v16 or higher)
+- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
+- [Expo CLI](https://docs.expo.dev/get-started/installation/)
+- [MongoDB](https://www.mongodb.com/try/download/community) (for backend)
+- [Git](https://git-scm.com/)
 
-🛠️ Development Setup
+## 🛠️ Installation & Setup
 
-Follow these steps to get the development environment up and running.
-Prerequisites
-•	Node.js
-•	Java Development Kit (JDK)
-•	Android Studio & Android SDK
-1. Clone the Repository
-git clone <repository-url>
-cd LYNQ-Chat-App-main
-2. Install Dependencies
-Navigate to the React Native project directory and install the required npm packages.
-cd LYNQChatApp
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Tayanithaa/Lynq-chat-app.git
+cd Lynq-chat-app/basic-rn
+```
+
+### 2. Install Frontend Dependencies
+
+```bash
 npm install
-3. Configure Android SDK
-This is a critical step to resolve the current build error.
-1.	Create a new file named local.properties inside the LYNQChatApp/android directory.
-2.	Open the local.properties file and add the following line, replacing path/to/your/android/sdk with the actual path to your Android SDK:
-3.	sdk.dir=path/to/your/android/sdk
-Example on Windows: sdk.dir=C:\Users\YourUsername\AppData\Local\Android\Sdk Example on macOS: sdk.dir=/Users/YourUsername/Library/Android/sdk
-4. Run the Application
-1.	Open Android Studio and start an Android emulator, or connect a physical Android device to your computer.
-2.	Run the following command from the LYNQChatApp directory to build and launch the app:
-npx react-native run-android
+```
 
-📝 Original App Concept
+### 3. Install Backend Dependencies
 
-Features
-🔐 Basic Features:
+```bash
+cd backend
+npm install
+cd ..
+```
 
-•	Real-Time Chat – Send and receive messages instantly with WebSockets.
-•	End-to-End Encryption – All messages are protected using X25519 (Key Exchange), ChaCha20-Poly1305(AEAD) and Poly1305 (MAC).
-•	User Authentication – Secure login and registration system using Firebase Auth.
-•	Auto-Link Verification – Links shared in messages are automatically scanned for phishing or malicious content.
-•	Media Sharing – Securely share images and files within chat.
-•	Group Chats – Encrypted group chat support with synchronized messages.
-📡 Advanced Features:
+### 4. Environment Configuration
 
-•	Auto-Blocks Unsafe Links – If a malicious link is detected, the link can be blocked until the user approves it.
-•	Word Lookup - Lookup for word meanings within the chat itself.
-•	Realtime Translation to English - Translate a message of a different language to english for understanding.
-How It Works
-•	User Signup/Login: Generates identity and encryption keys. Authenticates with backend using hashed credentials and Firebase.
-•	Start a Conversation: Requests the receiver's pre-keys from the server. Uses E2EE to establish a secure session.
-•	Send a Message: Message is encrypted on the client side. Optionally scanned for unsafe links. Sent to server and relayed to the receiver.
-•	Receive Message: Decrypted locally using session keys.
-Security Highlights
-•	Uses X25519 (Key Exchange), ChaCha20-Poly1305(AEAD) and Poly1305 (MAC) for true end-to-end encryption.
-•	All messages are encrypted before leaving the device.
-•	No messages are stored in plaintext, even on the server.
-•	Implements forward secrecy, ensuring past messages stay secure even if current keys are compromised.
-•	Auto-blocks malicious messages until user approval based on threat detection APIs.
-Supported Platforms
-•	Mobile: Planned support via React Native
+#### Frontend (.env)
+Create a `.env` file in the root directory:
 
-📂 Project Structure
+```env
+# Firebase Configuration
+EXPO_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
+EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
+```
 
-The LYNQ-Chat-App project is organized for scalable, cross-platform mobile development. Below is an overview of the main files and folders:
-LYNQChatApp/
+#### Backend (backend/.env)
+Create a `.env` file in the backend directory:
 
-├── android/ # Native Android project (Gradle, Java/Kotlin, resources)
+```env
+# Database Configuration
+MONGODB_URI=mongodb://localhost:27017/chatapp-backend
 
-│    └── app/
+# Server Configuration
+PORT=5000
 
-│        └── src/
+# Environment
+NODE_ENV=development
+```
 
-│            └── main/
+### 5. Firebase Setup
 
-│                ├── java/com/lynqchatapp/   # MainActivity.kt, MainApplication.kt
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Create a new project or use existing one
+3. Enable Authentication (Email/Password and Phone)
+4. Enable Firestore Database
+5. Copy your config values to the `.env` file
 
-│                  └── res/                    # Drawables, mipmaps, values
+### 6. MongoDB Setup
 
-├── ios/                    # Native iOS project (Swift, Storyboard, assets)
+1. Install MongoDB Community Edition
+2. Start MongoDB service:
+   ```bash
+   # Windows
+   net start MongoDB
+   
+   # macOS
+   brew services start mongodb/brew/mongodb-community
+   
+   # Linux
+   sudo systemctl start mongod
+   ```
 
-│    └── LYNQChatApp/
+## 🚀 Running the Application
 
-│        ├── AppDelegate.swift
+### Start the Backend Server
 
-│        ├── Images.xcassets/
+```bash
+cd backend
+npm start
+# or for development with auto-reload
+npm run dev
+```
 
-│        ├── Info.plist
+The backend server will start on `http://localhost:5000`
 
-│        └── LaunchScreen.storyboard
+### Start the Frontend App
 
-├── src/                    # Application source code
+```bash
+# In the root directory (basic-rn)
+npx expo start
+```
 
-│    ├── api/                # API integration
+This will start the Expo development server. You can then:
 
-│    ├── assets/             # Static assets (images, fonts, etc.)
+- Press `w` to open in web browser
+- Press `a` to open Android emulator
+- Press `i` to open iOS simulator
+- Scan QR code with Expo Go app on your phone
 
-│    ├── components/         # Reusable UI components
+## 📱 App Structure
 
-│    ├── config/             # Configuration files
+```
+basic-rn/
+├── app/                    # App screens and navigation
+│   ├── index.tsx          # Welcome screen
+│   ├── login.tsx          # Email login screen
+│   ├── loginpage.tsx      # Phone login screen
+│   ├── otp.tsx            # OTP verification
+│   ├── Account-setup.tsx  # User registration
+│   ├── front.tsx          # Main app with tabs
+│   ├── chatscreen.tsx     # Chat list screen
+│   ├── chat/              # Individual chat screens
+│   └── config/            # Firebase configuration
+├── backend/               # Node.js backend
+│   ├── server.js          # Express server
+│   ├── models/            # MongoDB models
+│   └── routes/            # API routes
+├── components/            # Reusable UI components
+├── assets/                # Images and fonts
+└── README.md
+```
 
-│    ├── features/           # Feature module
-s
-│    │    ├── auth/           # Authentication logic
+## 🔧 Available Scripts
 
-│    │    ├── chat/           # Chat functionality
+### Frontend
+- `npm start` - Start Expo development server
+- `npm run android` - Start on Android
+- `npm run ios` - Start on iOS
+- `npm run web` - Start on web
+- `npm run lint` - Run ESLint
 
-│    │    ├── linkVerification/ # Link safety checks
+### Backend
+- `npm start` - Start production server
+- `npm run dev` - Start development server with nodemon
 
-│   │    ├── media/          # Media sharing
- 
-│    │    ├── translation/    # Message translation
+## 📚 Key Technologies
 
-│    │    └── wordLookup/     # Word meaning lookup
+- **Frontend**: React Native, Expo, TypeScript
+- **UI**: NativeWind (Tailwind CSS), Linear Gradients
+- **Authentication**: Firebase Auth
+- **Database**: Firebase Firestore, MongoDB
+- **Backend**: Node.js, Express.js, Mongoose
+- **Navigation**: Expo Router, React Navigation
 
-│    ├── navigation/         # Navigation setup
+## 🎨 UI Features
 
-│    ├── screens/            # App screens
+- **Gradient Backgrounds**: Beautiful green-to-dark gradients
+- **Modern Components**: Clean, iOS-style UI elements
+- **Responsive Design**: Works on all screen sizes
+- **Smooth Animations**: React Native Reanimated
+- **Tab Navigation**: Material Top Tabs for main sections
 
-│    ├── services/           # Service layer (business logic)
+## 🔐 Authentication Flow
 
-│    └── utils/              # Utility functions
+1. **Welcome Screen**: App introduction with privacy policy
+2. **Login Options**: Email/password or phone number
+3. **OTP Verification**: For phone number authentication
+4. **Registration**: New user account creation
+5. **Main App**: Access to chat, updates, and calls
 
-├── __tests__/              # Unit and integration tests
+## 🗄️ Database Schema
 
-├── App.tsx                 # Main app entry point
+### MongoDB (Users)
+```javascript
+{
+  phone: String (unique),
+  name: String,
+  profileImage: String
+}
+```
 
-├── index.js                # App bootstrap
+### Firebase Firestore (Users)
+```javascript
+{
+  name: String,
+  mobile: String,
+  email: String,
+  password: String (hashed),
+  createdAt: String
+}
+```
 
-├── package.json            # Project metadata and dependencies
+## 🚨 Troubleshooting
 
-├── README.md               # Project documentation
+### Common Issues
 
-└── ...other config and build files
+1. **Expo Doctor Errors**
+   ```bash
+   npx expo-doctor
+   npx expo install --fix
+   ```
 
-This structure ensures clear separation of concerns, maintainability, and ease of scaling for new features and platforms. Each feature is modularized under src/features, and platform-specific code is isolated in android/ and ios/ directories. Automated tests are placed in __tests__ to support robust development workflows.
+2. **MongoDB Connection Error**
+   - Ensure MongoDB is running
+   - Check connection string in backend/.env
 
-🤝 Team
+3. **Firebase Authentication Issues**
+   - Verify Firebase config in .env
+   - Check Firebase console for enabled auth methods
 
-•	Mirdula R
+4. **Metro Bundler Issues**
+   ```bash
+   npx expo start --clear
+   ```
 
-•	Piriyadharshini L K
+### Development Tips
 
-•	Tayanithaa N S
+- Use `npx expo-doctor` to check for common issues
+- Run `npx expo install --fix` to update dependencies
+- Check logs in Expo Dev Tools for detailed error information
+- Use React Native Debugger for debugging
 
-•	Logesh Raj B
+## 🔮 Future Features (Original Vision)
 
-•	Jaisurya S
+### 🔐 Advanced Security Features
+- **End-to-End Encryption**: X25519 key exchange with ChaCha20-Poly1305
+- **Auto-Link Verification**: Automatic scanning for malicious links
+- **Forward Secrecy**: Enhanced message security
+
+### 📡 Smart Features
+- **Word Lookup**: In-chat dictionary functionality
+- **Real-time Translation**: Automatic language translation
+- **Auto-Block Unsafe Content**: AI-powered content filtering
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 👥 Team
+
+- **Mirdula R** - *Team Member*
+- **Piriyadharshini L K** - *Team Member*
+- **Tayanithaa N S** - *Team Member*
+- **Logesh Raj B** - *Team Member*
+- **Jaisurya S** - *Team Member*
+
+## 🙏 Acknowledgments
+
+- Expo team for the amazing development platform
+- Firebase for backend services
+- React Native community for excellent documentation
+- All contributors who help improve this project
+
+## 📞 Support
+
+If you have any questions or need help, please:
+
+1. Check the [Issues](https://github.com/Tayanithaa/Lynq-chat-app/issues) page
+2. Create a new issue if your problem isn't already reported
+3. Provide detailed information about your environment and the issue
+
+---
+
+**Happy Chatting with LYNQ! 🎉**
 
 
