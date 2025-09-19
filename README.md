@@ -79,59 +79,59 @@ LYNQChatApp/
 
 ├── android/ # Native Android project (Gradle, Java/Kotlin, resources)
 
-│   └── app/
+│    └── app/
 
-│       └── src/
+│        └── src/
 
-│           └── main/
+│            └── main/
 
-│               ├── java/com/lynqchatapp/   # MainActivity.kt, MainApplication.kt
+│                ├── java/com/lynqchatapp/   # MainActivity.kt, MainApplication.kt
 
-│               └── res/                    # Drawables, mipmaps, values
+│                  └── res/                    # Drawables, mipmaps, values
 
 ├── ios/                    # Native iOS project (Swift, Storyboard, assets)
 
-│   └── LYNQChatApp/
+│    └── LYNQChatApp/
 
-│       ├── AppDelegate.swift
+│        ├── AppDelegate.swift
 
-│       ├── Images.xcassets/
+│        ├── Images.xcassets/
 
-│       ├── Info.plist
+│        ├── Info.plist
 
-│       └── LaunchScreen.storyboard
+│        └── LaunchScreen.storyboard
 
 ├── src/                    # Application source code
 
-│   ├── api/                # API integration
+│    ├── api/                # API integration
 
-│   ├── assets/             # Static assets (images, fonts, etc.)
+│    ├── assets/             # Static assets (images, fonts, etc.)
 
-│   ├── components/         # Reusable UI components
+│    ├── components/         # Reusable UI components
 
-│   ├── config/             # Configuration files
+│    ├── config/             # Configuration files
 
-│   ├── features/           # Feature module
+│    ├── features/           # Feature module
 s
-│   │   ├── auth/           # Authentication logic
+│    │    ├── auth/           # Authentication logic
 
-│   │   ├── chat/           # Chat functionality
+│    │    ├── chat/           # Chat functionality
 
-│   │   ├── linkVerification/ # Link safety checks
+│    │    ├── linkVerification/ # Link safety checks
 
-│   │   ├── media/          # Media sharing
+│   │    ├── media/          # Media sharing
+ 
+│    │    ├── translation/    # Message translation
 
-│   │   ├── translation/    # Message translation
+│    │    └── wordLookup/     # Word meaning lookup
 
-│   │   └── wordLookup/     # Word meaning lookup
+│    ├── navigation/         # Navigation setup
 
-│   ├── navigation/         # Navigation setup
+│    ├── screens/            # App screens
 
-│   ├── screens/            # App screens
+│    ├── services/           # Service layer (business logic)
 
-│   ├── services/           # Service layer (business logic)
-
-│   └── utils/              # Utility functions
+│    └── utils/              # Utility functions
 
 ├── __tests__/              # Unit and integration tests
 
