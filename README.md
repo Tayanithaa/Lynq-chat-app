@@ -5,6 +5,7 @@ LYNQ-Chat-App
 🚀 Project Status (As of August 15, 2025)
 
 This project is currently in the initial setup phase. Here's a summary of what has been completed:
+
 •	Project Initialization: A new React Native project has been created in the LYNQChatApp directory.
 •	Firebase Integration:
 o	The core Firebase dependencies (@react-native-firebase/app and @react-native-firebase/auth) have been added to the project.
@@ -12,6 +13,7 @@ o	The native Android project has been configured to connect with Firebase. The b
 🚨 Current Blockers
 
 The project is currently not buildable due to a local environment configuration issue.
+
 1.	Android SDK Location: The build will fail until the local path to the Android SDK is correctly configured.
 2.	Emulator/Device: An Android emulator must be running or a physical device must be connected to launch the application.
 
@@ -148,9 +150,13 @@ This structure ensures clear separation of concerns, maintainability, and ease o
 🤝 Team
 
 •	Mirdula R
+
 •	Piriyadharshini L K
+
 •	Tayanithaa N S
+
 •	Logesh Raj B
+
 •	Jaisurya S
 
 
