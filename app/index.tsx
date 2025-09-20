@@ -1,9 +1,18 @@
 import { useRouter } from "expo-router";
 import { Text, Image, View, StyleSheet, TouchableOpacity } from "react-native";
-import { LinearGradient } from "expo-linear-gradient"; 
+import { LinearGradient } from "expo-linear-gradient";
+import { useEffect } from "react";
+import { testFirebaseConnection } from "./utils/firebaseTest";
 
 export default function WelcomeScreen() {
   const router = useRouter();
+
+  useEffect(() => {
+    // Test Firebase connection on app startup
+    testFirebaseConnection().then(result => {
+      console.log('Firebase Test Result:', result);
+    });
+  }, []);
 
   return (
     <LinearGradient
