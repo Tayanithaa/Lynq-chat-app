@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Message API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 8px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 3px; }
+        .messages { background: #f8f9fa; padding: 10px; border-radius: 3px; }
+        .message { padding: 8px; margin: 5px 0; background: white; border-radius: 3px; border-left: 3px solid #007bff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Message API Test</h1>
+        
+        <div class="section">
+            <h3>Send Message</h3>
+            <input type="text" id="sender" placeholder="Sender" value="user1">
+            <input type="text" id="receiver" placeholder="Receiver" value="user2">
+            <textarea id="messageText" placeholder="Message text" rows="3">Hello from the message API!</textarea>
+            <button onclick="sendMessage()">Send Message</button>
+            <div id="sendResult"></div>
+        </div>
+
+        <div class="section">
+            <h3>Messages</h3>
+            <button onclick="getMessages()">Refresh Messages</button>
+            <div id="messageList" class="messages"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3003';
+
+        async function sendMessage() {
+            const sender = document.getElementById('sender').value;
+            const receiver = document.getElementById('receiver').value;
+            const text = document.getElementById('messageText').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ sender, receiver, text })
+                });
+
+                const result = await response.json();
+                document.getElementById('sendResult').innerHTML = 
+                    `<p style="color: ${response.ok ? 'green' : 'red'}">${JSON.stringify(result, null, 2)}</p>`;
+                
+                if (response.ok) {
+                    getMessages(); // Refresh messages
+                }
+            } catch (error) {
+                document.getElementById('sendResult').innerHTML = 
+                    `<p style="color: red">Error: ${error.message}</p>`;
+            }
+        }
+
+        async function getMessages() {
+            try {
+                const response = await fetch(`${API_BASE}/messages`);
+                const result = await response.json();
+                
+                const messageList = document.getElementById('messageList');
+                if (response.ok && result.messages) {
+                    messageList.innerHTML = result.messages.map(msg => 
+                        `<div class="message">
+                            <strong>${msg.sender} → ${msg.receiver}</strong><br>
+                            ${msg.text}<br>
+                            <small>${new Date(msg.timestamp).toLocaleString()}</small>
+                        </div>`
+                    ).join('');
+                } else {
+                    messageList.innerHTML = `<p style="color: red">${JSON.stringify(result)}</p>`;
+                }
+            } catch (error) {
+                document.getElementById('messageList').innerHTML = 
+                    `<p style="color: red">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Load messages on page load
+        getMessages();
+    </script>
+</body>
+</html>
