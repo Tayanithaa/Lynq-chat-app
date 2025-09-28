@@ -39,3 +39,7 @@ yarn-error.*
 
 app-example
 server/node_modules
+
+# Firebase service account credentials (sensitive)
+**/serviceAccount*.json
+**/serviceAccountKey.json
