@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lynq Chat - Real-Time Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .container { display: flex; gap: 20px; }
+        .client { flex: 1; border: 2px solid #ddd; padding: 15px; border-radius: 8px; }
+        .client h3 { margin-top: 0; color: #333; }
+        .messages { height: 300px; overflow-y: auto; border: 1px solid #eee; padding: 10px; margin: 10px 0; background: #f9f9f9; }
+        .message { margin: 5px 0; padding: 5px; background: white; border-radius: 4px; }
+        input, button { padding: 8px; margin: 2px; }
+        button { background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .connected { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .disconnected { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Lynq Chat Real-Time Messaging Test</h1>
+    
+    <div class="container">
+        <div class="client">
+            <h3>👤 User 1</h3>
+            <div id="status1" class="status disconnected">⚪ Disconnected</div>
+            <div id="messages1" class="messages"></div>
+            <input type="text" id="input1" placeholder="Type message..." style="width: 70%;">
+            <button onclick="sendMessage(1)">Send</button>
+            <button onclick="connectClient(1)">Connect</button>
+        </div>
+        
+        <div class="client">
+            <h3>👤 User 2</h3>
+            <div id="status2" class="status disconnected">⚪ Disconnected</div>
+            <div id="messages2" class="messages"></div>
+            <input type="text" id="input2" placeholder="Type message..." style="width: 70%;">
+            <button onclick="sendMessage(2)">Send</button>
+            <button onclick="connectClient(2)">Connect</button>
+        </div>
+    </div>
+    
+    <div style="margin-top: 20px; padding: 15px; background: #e7f3ff; border-radius: 8px;">
+        <h3>📋 Test Instructions:</h3>
+        <ol>
+            <li>Click "Connect" for both users</li>
+            <li>Type a message in User 1's input and click "Send"</li>
+            <li>Watch the message appear instantly in User 2's message area</li>
+            <li>Send messages from User 2 to User 1</li>
+            <li>Check that messages are stored permanently in Firebase</li>
+        </ol>
+        
+        <p><strong>🔥 What's being tested:</strong></p>
+        <ul>
+            <li>✅ Socket.IO real-time connection</li>
+            <li>✅ Instant message delivery</li>
+            <li>✅ Firebase Firestore persistent storage</li>
+            <li>✅ Backend API integration</li>
+        </ul>
+    </div>
+
+    <script>
+        let socket1, socket2;
+        const API_BASE = 'http://localhost:3004';
+
+        function connectClient(clientNum) {
+            const socket = io(API_BASE, { transports: ['websocket', 'polling'] });
+            
+            if (clientNum === 1) {
+                socket1 = socket;
+            } else {
+                socket2 = socket;
+            }
+
+            socket.on('connect', () => {
+                document.getElementById(`status${clientNum}`).className = 'status connected';
+                document.getElementById(`status${clientNum}`).innerHTML = `🟢 Connected (${socket.id})`;
+                addMessage(clientNum, `🔌 Connected to server`, 'system');
+            });
+
+            socket.on('disconnect', () => {
+                document.getElementById(`status${clientNum}`).className = 'status disconnected';
+                document.getElementById(`status${clientNum}`).innerHTML = '⚪ Disconnected';
+                addMessage(clientNum, `🔌 Disconnected from server`, 'system');
+            });
+
+            socket.on('message', (msg) => {
+                addMessage(clientNum, `📨 ${msg.senderId}: ${msg.text}`, 'received');
+            });
+        }
+
+        async function sendMessage(clientNum) {
+            const input = document.getElementById(`input${clientNum}`);
+            const text = input.value.trim();
+            
+            if (!text) return;
+
+            try {
+                // Send message via API (this will trigger Socket.IO broadcast)
+                const response = await fetch(`${API_BASE}/api/messages/test`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        senderId: `user-${clientNum}`,
+                        receiverId: `user-${clientNum === 1 ? 2 : 1}`
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    addMessage(clientNum, `📤 You: ${text}`, 'sent');
+                    input.value = '';
+                } else {
+                    addMessage(clientNum, `❌ Failed to send message`, 'error');
+                }
+            } catch (error) {
+                addMessage(clientNum, `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function addMessage(clientNum, text, type) {
+            const messagesDiv = document.getElementById(`messages${clientNum}`);
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            
+            if (type === 'sent') {
+                messageDiv.style.backgroundColor = '#007bff';
+                messageDiv.style.color = 'white';
+                messageDiv.style.marginLeft = '20px';
+            } else if (type === 'received') {
+                messageDiv.style.backgroundColor = '#28a745';
+                messageDiv.style.color = 'white';
+                messageDiv.style.marginRight = '20px';
+            } else if (type === 'system') {
+                messageDiv.style.backgroundColor = '#6c757d';
+                messageDiv.style.color = 'white';
+                messageDiv.style.fontStyle = 'italic';
+            } else if (type === 'error') {
+                messageDiv.style.backgroundColor = '#dc3545';
+                messageDiv.style.color = 'white';
+            }
+            
+            messageDiv.textContent = `${new Date().toLocaleTimeString()} - ${text}`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Allow Enter key to send messages
+        document.getElementById('input1').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage(1);
+        });
+        
+        document.getElementById('input2').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage(2);
+        });
+
+        // Auto-connect on page load
+        setTimeout(() => {
+            connectClient(1);
+            connectClient(2);
+        }, 1000);
+    </script>
+</body>
+</html>
