@@ -1,16 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  FlatList,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
+  View,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
 import { useMessages } from '../hooks/useMessages';
 import { Message } from '../services/apiService';
 

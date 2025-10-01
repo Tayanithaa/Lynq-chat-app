@@ -1,13 +1,15 @@
 // Custom hook for managing messages
-import { useState, useEffect, useCallback } from 'react';
-import { apiService, Message } from '../services/apiService';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { auth } from '../config/firebaseconfig';
+import { apiService, Message } from '../services/apiService';
 
 export const useMessages = (otherUserId?: string) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const socketRef = useRef<Socket | null>(null);
 
   // Get current user info
   useEffect(() => {
@@ -84,6 +86,33 @@ export const useMessages = (otherUserId?: string) => {
       loadMessages();
     }
   }, [loadMessages, currentUser]);
+
+  // Setup socket connection for real-time updates
+  useEffect(() => {
+    const setupSocket = async () => {
+      const apiUrl = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3004';
+      socketRef.current = io(apiUrl, { transports: ['websocket', 'polling'] });
+
+      socketRef.current.on('connect', () => {
+        console.log('🔌 Socket connected:', socketRef.current?.id);
+      });
+
+      socketRef.current.on('message', (msg: Message) => {
+        setMessages(prev => [...prev, msg]);
+      });
+
+      socketRef.current.on('disconnect', () => {
+        console.log('🔌 Socket disconnected');
+      });
+    };
+
+    setupSocket();
+
+    return () => {
+      socketRef.current?.disconnect();
+      socketRef.current = null;
+    };
+  }, []);
 
   return {
     messages,

@@ -1,7 +1,8 @@
 // API service for backend communication
 import { auth } from '../config/firebaseconfig';
 
-const API_BASE_URL = 'http://localhost:3004'; // Your backend URL
+// Read backend URL from environment (Expo/.env)
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3004';
 
 // Types for message data
 export interface Message {
@@ -71,7 +72,7 @@ class ApiService {
   // Get all messages
   async getMessages(): Promise<Message[]> {
     try {
-      const response: MessageResponse = await this.makeRequest('/messages');
+      const response: MessageResponse = await this.makeRequest('/api/messages');
       return response.messages || [];
     } catch (error) {
       console.error('Failed to fetch messages:', error);
@@ -82,7 +83,7 @@ class ApiService {
   // Send a new message
   async sendMessage(sender: string, receiver: string, text: string): Promise<Message | null> {
     try {
-      const response: SendMessageResponse = await this.makeRequest('/messages', {
+      const response: SendMessageResponse = await this.makeRequest('/api/messages', {
         method: 'POST',
         body: JSON.stringify({ sender, receiver, text }),
       });
