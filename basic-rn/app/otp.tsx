@@ -1,8 +1,9 @@
-import {  View, Text, StyleSheet, Image, TextInput, Keyboard, TouchableOpacity, Alert } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from "expo-router";
 import { useRoute } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Image, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { apiService } from "./services/apiService";
 
 const OTP_LENGTH = 6;
 const Resend_Time = 30;
@@ -33,6 +34,35 @@ export default function VerifyOTP() {
     }
   }, [Timer]);
 
+  // Send OTP when component mounts
+  useEffect(() => {
+    const sendInitialOTP = async () => {
+      if (phone) {
+        try {
+          console.log('📱 Sending initial OTP to:', phone);
+          const response = await apiService.sendOTP(phone);
+          
+          if (response.success) {
+            console.log('✅ Initial OTP sent successfully');
+            // If in development mode, show the OTP in console
+            if (response.debug?.otp) {
+              console.log('🔐 Development OTP:', response.debug.otp);
+            }
+          } else {
+            console.error('❌ Failed to send initial OTP:', response.error);
+            Alert.alert("Error", "Failed to send OTP. Please try again.");
+          }
+        } catch (error) {
+          console.error('❌ Initial OTP send failed:', error);
+          const errorMessage = error instanceof Error ? error.message : "Failed to send OTP";
+          Alert.alert("Error", errorMessage);
+        }
+      }
+    };
+
+    sendInitialOTP();
+  }, [phone]);
+
   const handleChange = (text: string, index: number) => {
     if (/^\d$/.test(text)) {
       const newotp = [...otp];
@@ -56,22 +86,66 @@ export default function VerifyOTP() {
     }
   };
 
-  const handleButtonPress = () => {
+  const handleButtonPress = async () => {
     const code = otp.join("");
     if (code.length !== OTP_LENGTH) {
-      return Alert.alert("Please provide the complete OTP");
+      return Alert.alert("Incomplete OTP", "Please provide the complete 6-digit OTP");
     }
-    router.push("/front");
+
+    if (!phone) {
+      return Alert.alert("Error", "Phone number not found");
+    }
+
+    try {
+      console.log('🔐 Verifying OTP:', { phone, code });
+      const response = await apiService.verifyOTP(phone, code);
+      
+      if (response.success) {
+        Alert.alert(
+          "Success", 
+          "OTP verified successfully!",
+          [
+            {
+              text: "Continue",
+              onPress: () => router.push("/front")
+            }
+          ]
+        );
+      } else {
+        Alert.alert("Error", response.error || "Failed to verify OTP");
+      }
+    } catch (error) {
+      console.error('❌ OTP verification failed:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to verify OTP";
+      Alert.alert("Verification Failed", errorMessage);
+    }
   };
 
-  const handleResend = () => {
-    if (Timer === 0) {
+  const handleResend = async () => {
+    if (Timer === 0 && phone) {
       setIsResending(true);
-      setTimeout(() => {
+      
+      try {
+        console.log('🔄 Resending OTP to:', phone);
+        const response = await apiService.resendOTP(phone);
+        
+        if (response.success) {
+          setTimer(Resend_Time);
+          Alert.alert("OTP Resent", "A new OTP has been sent to your number.");
+          
+          // Clear current OTP input
+          setotp(Array(OTP_LENGTH).fill(""));
+          inputs.current[0]?.focus();
+        } else {
+          Alert.alert("Error", response.error || "Failed to resend OTP");
+        }
+      } catch (error) {
+        console.error('❌ Failed to resend OTP:', error);
+        const errorMessage = error instanceof Error ? error.message : "Failed to resend OTP";
+        Alert.alert("Resend Failed", errorMessage);
+      } finally {
         setIsResending(false);
-        setTimer(Resend_Time);
-        Alert.alert("OTP Resend", "A new OTP has been sent to your number.");
-      }, 1000);
+      }
     }
   };
 
@@ -121,7 +195,7 @@ export default function VerifyOTP() {
           <Text style={styles.buttonText}>Continue</Text>
         </TouchableOpacity>
         <View style={styles.resendrow}>
-          <Text style={styles.resendinfo}>Didn't get the code?</Text>
+          <Text style={styles.resendinfo}>Didn&apos;t get the code?</Text>
           <TouchableOpacity
             style={styles.resendcontainer}
             disabled={Timer > 0 || isResending}
@@ -208,7 +282,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     textAlign: "center",
     fontSize: 26,
-    color: "333",
+    color: "#333",
     fontWeight: "600",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },

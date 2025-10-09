@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lynq Chat - Real-Time Messaging Test</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .connected { background: #d4edda; color: #155724; }
+        .disconnected { background: #f8d7da; color: #721c24; }
+        .message-box {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: #f9f9f9;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .message {
+            margin: 5px 0;
+            padding: 8px;
+            background: #e3f2fd;
+            border-radius: 5px;
+            border-left: 4px solid #2196f3;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        input, button, select {
+            margin: 5px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .test-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Lynq Chat - Real-Time Test</h1>
+        
+        <div id="status" class="status disconnected">
+            ❌ Disconnected
+        </div>
+        
+        <div class="input-group">
+            <h3>Connection Settings</h3>
+            <input type="text" id="serverUrl" value="http://localhost:3004" placeholder="Server URL">
+            <button onclick="connect()">Connect</button>
+            <button onclick="disconnect()">Disconnect</button>
+        </div>
+        
+        <div class="input-group">
+            <h3>Send Message</h3>
+            <input type="text" id="senderId" value="web-user-1" placeholder="Your User ID">
+            <input type="text" id="receiverId" value="mobile-user-1" placeholder="Receiver ID">
+            <input type="text" id="messageText" value="Hello from web!" placeholder="Message text">
+            <button onclick="sendMessage()">Send Message</button>
+        </div>
+        
+        <div class="test-buttons">
+            <h3>Quick Tests</h3>
+            <button onclick="testAPI()">Test API</button>
+            <button onclick="testSocket()">Test Socket</button>
+            <button onclick="sendTestMessages()">Send Test Messages</button>
+            <button onclick="clearMessages()">Clear Messages</button>
+        </div>
+        
+        <div class="message-box">
+            <h3>📨 Real-Time Messages</h3>
+            <div id="messages"></div>
+        </div>
+        
+        <div class="message-box">
+            <h3>📋 System Logs</h3>
+            <div id="logs"></div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        const messagesDiv = document.getElementById('messages');
+        const logsDiv = document.getElementById('logs');
+        const statusDiv = document.getElementById('status');
+
+        function log(message) {
+            const time = new Date().toLocaleTimeString();
+            logsDiv.innerHTML += `<div>[${time}] ${message}</div>`;
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function showMessage(msg) {
+            const time = new Date().toLocaleTimeString();
+            messagesDiv.innerHTML += `
+                <div class="message">
+                    <strong>[${time}] ${msg.senderId} → ${msg.receiverId}:</strong><br>
+                    ${msg.text}
+                </div>
+            `;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function updateStatus(connected) {
+            if (connected) {
+                statusDiv.className = 'status connected';
+                statusDiv.innerHTML = '✅ Connected to Socket Server';
+            } else {
+                statusDiv.className = 'status disconnected';
+                statusDiv.innerHTML = '❌ Disconnected from Socket Server';
+            }
+        }
+
+        function connect() {
+            const url = document.getElementById('serverUrl').value;
+            
+            if (socket) {
+                socket.disconnect();
+            }
+
+            log(`Connecting to ${url}...`);
+            
+            socket = io(url, {
+                transports: ['websocket', 'polling'],
+                timeout: 20000,
+                reconnectionAttempts: 5
+            });
+
+            socket.on('connect', () => {
+                log('✅ Socket connected successfully!');
+                updateStatus(true);
+            });
+
+            socket.on('disconnect', (reason) => {
+                log(`❌ Socket disconnected: ${reason}`);
+                updateStatus(false);
+            });
+
+            socket.on('connect_error', (error) => {
+                log(`❌ Connection error: ${error.message}`);
+                updateStatus(false);
+            });
+
+            socket.on('message', (msg) => {
+                log('📨 Received real-time message!');
+                showMessage(msg);
+            });
+
+            socket.on('receive-message', (msg) => {
+                log('📨 Received message via receive-message event!');
+                showMessage(msg);
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                log('Manually disconnected');
+                updateStatus(false);
+            }
+        }
+
+        async function sendMessage() {
+            const senderId = document.getElementById('senderId').value;
+            const receiverId = document.getElementById('receiverId').value;
+            const text = document.getElementById('messageText').value;
+
+            if (!senderId || !receiverId || !text) {
+                alert('Please fill all fields!');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:3004/api/messages/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        senderId,
+                        receiverId,
+                        text
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(`✅ Message sent successfully!`);
+                    showMessage({senderId, receiverId, text});
+                } else {
+                    log(`❌ Failed to send message: ${result.error}`);
+                }
+            } catch (error) {
+                log(`❌ Error sending message: ${error.message}`);
+            }
+        }
+
+        async function testAPI() {
+            log('Testing API health...');
+            try {
+                const response = await fetch('http://localhost:3004/health');
+                const data = await response.json();
+                log(`✅ API Health: ${data.status} - Firebase: ${data.firebase}`);
+            } catch (error) {
+                log(`❌ API test failed: ${error.message}`);
+            }
+        }
+
+        function testSocket() {
+            if (socket && socket.connected) {
+                log('✅ Socket is connected and ready!');
+                socket.emit('test-event', { message: 'Hello from web test!' });
+            } else {
+                log('❌ Socket not connected. Click Connect first.');
+            }
+        }
+
+        async function sendTestMessages() {
+            const messages = [
+                { senderId: 'web-tester', receiverId: 'mobile-user', text: 'Test message 1' },
+                { senderId: 'web-tester', receiverId: 'mobile-user', text: 'Test message 2' },
+                { senderId: 'mobile-user', receiverId: 'web-tester', text: 'Reply from mobile' }
+            ];
+
+            for (let msg of messages) {
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second between messages
+                
+                try {
+                    const response = await fetch('http://localhost:3004/api/messages/test', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(msg)
+                    });
+                    
+                    if (response.ok) {
+                        log(`✅ Sent: ${msg.text}`);
+                    }
+                } catch (error) {
+                    log(`❌ Failed to send: ${msg.text}`);
+                }
+            }
+        }
+
+        function clearMessages() {
+            messagesDiv.innerHTML = '';
+            logsDiv.innerHTML = '';
+        }
+
+        // Auto-connect on page load
+        window.addEventListener('load', () => {
+            log('🚀 Real-time messaging test page loaded');
+            log('Click "Connect" to start testing socket connection');
+        });
+    </script>
+</body>
+</html>

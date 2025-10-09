@@ -1,27 +1,45 @@
-import React from "react";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
-import ChatsScreen from "./chatscreen";
-import UpdatesScreen from "./updatescreen";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 import CallsScreen from "./callsscreen";
-import { StyleSheet } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage"; 
+import ChatsScreen from "./chatscreen";
+import SocketInitializer from "./components/SocketInitializer";
+import { useAuth } from "./contexts/AuthContext";
+import UpdatesScreen from "./updatescreen";
+
 const Tab = createMaterialTopTabNavigator();
 
 export default function FrontScreen() {
+  // Add auth context check
+  const { user, isLoading } = useAuth();
+  
+  console.log('🔧 FrontScreen rendering with user:', user?.uid, 'loading:', isLoading);
+  
+  // Show loading state while auth is initializing
+  if (isLoading) {
+    return (
+      <View style={[styles.tabs, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+  
   return (
-    <Tab.Navigator
-      style={styles.tabs}
-      screenOptions={{
-        tabBarLabelStyle: { fontSize: 14, fontWeight: "bold" },
-        tabBarStyle: { backgroundColor: "#d32f2f" },
-        tabBarActiveTintColor: "#fff",
-        tabBarInactiveTintColor: "#f5b5b5",
-      }}
-    >
-      <Tab.Screen name="Chats" component={ChatsScreen} />
-      <Tab.Screen name="Updates" component={UpdatesScreen} />
-      <Tab.Screen name="Calls" component={CallsScreen} />
-    </Tab.Navigator>
+    <SocketInitializer>
+      <Tab.Navigator
+        style={styles.tabs}
+        screenOptions={{
+          tabBarLabelStyle: { fontSize: 14, fontWeight: "bold" },
+          tabBarStyle: { backgroundColor: "#d32f2f" },
+          tabBarActiveTintColor: "#fff",
+          tabBarInactiveTintColor: "#f5b5b5",
+        }}
+      >
+        <Tab.Screen name="Chats" component={ChatsScreen} />
+        <Tab.Screen name="Updates" component={UpdatesScreen} />
+        <Tab.Screen name="Calls" component={CallsScreen} />
+      </Tab.Navigator>
+    </SocketInitializer>
   );
 }
 

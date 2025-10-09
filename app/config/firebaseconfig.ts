@@ -1,7 +1,7 @@
-// config/firebaseConfig.js
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+// config/firebaseConfig.ts
+import { FirebaseApp, initializeApp } from "firebase/app";
+import { Auth, getAuth } from "firebase/auth";
+import { Firestore, getFirestore } from "firebase/firestore";
 
 // Firebase configuration with error handling
 const firebaseConfig = {
@@ -27,9 +27,9 @@ if (__DEV__) {
   });
 }
 
-let app;
-let auth;
-let db;
+let app: FirebaseApp | null = null;
+let auth: Auth;
+let db: Firestore;
 
 try {
   // Initialize Firebase with error handling
@@ -40,7 +40,7 @@ try {
   if (__DEV__) {
     console.log("✅ Firebase initialized successfully");
   }
-} catch (error) {
+} catch (error: any) {
   console.error("❌ Firebase initialization error:", error.message);
   
   // Create mock objects for development when Firebase fails
@@ -50,7 +50,7 @@ try {
     createUserWithEmailAndPassword: () => Promise.reject(new Error("Firebase unavailable")),
     signOut: () => Promise.resolve(),
     onAuthStateChanged: () => () => {},
-  };
+  } as any;
   
   db = {
     collection: () => ({
@@ -60,7 +60,7 @@ try {
         get: () => Promise.reject(new Error("Firebase unavailable")),
       }),
     }),
-  };
+  } as any;
   
   console.warn("⚠️ Using mock Firebase objects for development");
 }

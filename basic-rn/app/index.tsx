@@ -1,7 +1,7 @@
-import { useRouter } from "expo-router";
-import { Text, Image, View, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import { useEffect } from "react";
+import { Image, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { testFirebaseConnection } from "./utils/firebaseTest";
 
 export default function WelcomeScreen() {
@@ -27,9 +27,24 @@ export default function WelcomeScreen() {
       {/* privacy text */}
       <Text style={styles.align}>
         Read Our <Text style={styles.textcolour}>Privacy Policy</Text>. Tap
-        "Agree" & Continue to accept the
-        <Text style={styles.textcolour}> Terms and Conditions </Text>
+        "Agree" & Continue to accept the{" "}
+        <Text style={styles.textcolour}>Terms and Conditions</Text>
       </Text>
+
+      {/* Quick Test Buttons */}
+      <TouchableOpacity 
+        style={[styles.button, { backgroundColor: '#ff6b6b', marginBottom: 10 }]}
+        onPress={() => router.push('/MessageTest')}
+      >
+        <Text style={styles.buttonText}>🧪 Test Messages</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        style={[styles.button, { backgroundColor: '#4CAF50', marginBottom: 20 }]}
+        onPress={() => router.push('/test-chat')}
+      >
+        <Text style={styles.buttonText}>🚀 Test Encrypted Chat</Text>
+      </TouchableOpacity>
 
       {/* Agree and continue */}
       <TouchableOpacity
@@ -93,5 +108,22 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "bold",
     fontSize: 18,
+  },
+  button: {
+    width: "100%",
+    maxWidth: 320,
+    paddingVertical: 12,
+    borderRadius: 25,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });

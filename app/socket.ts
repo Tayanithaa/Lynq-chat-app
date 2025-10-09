@@ -1,14 +1,15 @@
 // app/socket.ts
-import { io, Socket } from "socket.io-client";
 import { getAuth } from "firebase/auth";
+import { io, Socket } from "socket.io-client";
+import { getSocketConfig, getSocketUrl } from './utils/socketConfig';
 
 let socket: Socket | null = null;
 
 /**
  * Call initSocket() once after user logs in.
- * Replace SERVER_URL with your server IP/host.
+ * Automatically detects correct URL for web and mobile.
  */
-export async function initSocket(SERVER_URL = "http://10.0.2.2:3000") {
+export async function initSocket(SERVER_URL?: string) {
   if (socket && socket.connected) return socket;
 
   const auth = getAuth();
@@ -16,11 +17,15 @@ export async function initSocket(SERVER_URL = "http://10.0.2.2:3000") {
   if (!user) throw new Error("User not signed in");
 
   const token = await user.getIdToken(/* forceRefresh */ false);
+  const socketUrl = SERVER_URL || getSocketUrl();
+  const socketConfig = getSocketConfig();
 
-  socket = io(SERVER_URL, {
+  console.log(`🔌 Connecting to socket: ${socketUrl}`);
+
+  // Configure socket for both mobile and web compatibility
+  socket = io(socketUrl, {
     auth: { token },
-    transports: ["websocket"],
-    reconnectionAttempts: 5
+    ...socketConfig
   });
 
   socket.on("connect_error", (err: any) => {

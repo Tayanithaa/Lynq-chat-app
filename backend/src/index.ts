@@ -5,7 +5,9 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 
 import authRoutes from "./routes/authRoutes";
+import contactRoutes from "./routes/contactRoutes";
 import messageRoutes from "./routes/messageRoutes";
+import otpRoutes from "./routes/otpRoutes";
 import userRoutes from "./routes/userRoutes";
 import { initSocket } from "./socket/index";
 
@@ -39,8 +41,10 @@ app.get("/health", (req: express.Request, res: express.Response) => {
 
 // API Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/contacts", contactRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/otp", otpRoutes);
 
 // Direct message routes (for frontend compatibility)
 app.use("/messages", messageRoutes);

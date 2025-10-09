@@ -1,0 +1,6 @@
+# Ignore patterns for Expo Router
+/hooks/
+/services/
+/utils/
+/contexts/
+socket.ts

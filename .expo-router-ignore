@@ -1,0 +1,6 @@
+app/contexts/AuthContext.tsx
+app/hooks/useMessages.ts
+app/services/apiService.ts
+app/socket.ts
+app/utils/firebaseTest.js
+app/utils/socketConfig.ts

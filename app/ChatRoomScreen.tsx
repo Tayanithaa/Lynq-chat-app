@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useRef } from "react";
-import { View, Text, TextInput, Button, FlatList, KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
-import { useRoute, RouteProp } from "@react-navigation/native";
-import { initSocket, getSocket, disconnectSocket } from "./socket";
+import { RouteProp, useRoute } from "@react-navigation/native";
 import { getAuth } from "firebase/auth";
+import React, { useEffect, useRef, useState } from "react";
+import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { ImageMessage } from "./services/imageService";
+import { initSocket } from "./socket";
 
 type RouteParams = {
   params: {
@@ -14,6 +15,9 @@ type MessageItem = {
   fromUid: string;
   message: string;
   ts: number;
+  type?: 'text' | 'image';
+  imageUrl?: string;
+  imageData?: ImageMessage;
 };
 
 export default function ChatRoomScreen() {
@@ -21,6 +25,8 @@ export default function ChatRoomScreen() {
   const chatId = route.params.chatId;
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<MessageItem[]>([]);
+  const [selectedImage, setSelectedImage] = useState<ImageMessage | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const socketRef = useRef<any>(null);
 
   useEffect(() => {

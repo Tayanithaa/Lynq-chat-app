@@ -12,8 +12,44 @@
     "resolveJsonModule": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "composite": true,            // enables project references / faster rebuilds
+    "incremental": true,          // cache .tsbuildinfo for watch mode
+    "tsBuildInfoFile": "./dist/.tsbuildinfo"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }
+
+// --- RUN COMMAND CHEAT SHEET ---
+// From repo root (adjust if different):
+// 1) Realtime server (Socket.IO):
+//    cd basic-rn/server
+//    npm install
+//    node index.js
+//
+// 2) Backend API (TypeScript):
+//    cd ../backend
+//    npm install
+//    npx tsc            # build once
+//    node dist/index.js # run compiled
+//    # or watch + auto rebuild in two terminals:
+//    npx tsc -w
+//    nodemon dist/index.js
+//
+// 3) React Native app:
+//    cd ../../          # go to RN project root if different
+//    npm install
+//    npx react-native start
+//    npx react-native run-android   # or run-ios
+//
+// Socket client must use: http://<YOUR_LAN_IP>:3000
+// Test endpoints:
+//   curl http://localhost:3000/health
+//   curl http://localhost:3000/debug/connections
+//
+// Quick node socket test:
+//   node -e "const {io}=require('socket.io-client');const s=io('http://localhost:3000',{auth:{token:'<FIREBASE_ID_TOKEN>'},transports:['websocket']});s.on('connect',()=>{s.emit('join-room',{roomId:'test'});});s.on('room-history',m=>console.log(m));"
+//
+// Optional combined (after adding scripts) with concurrently:
+//   npx concurrently "npm:dev:server" "npm:dev:backend" "npm:dev:app"

@@ -1,15 +1,15 @@
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    FlatList,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useMessages } from '../hooks/useMessages';
 import { Message } from '../services/apiService';
@@ -27,7 +27,30 @@ export default function ChatScreen() {
     sendMessage,
     refreshMessages,
     checkHealth,
+    switchUser,
   } = useMessages(chatId as string);
+
+  // Get user display name
+  const getUserDisplayName = (userId: string) => {
+    if (!userId) return 'Unknown User';
+    
+    // If it's the current user, show "You"
+    if (userId === currentUser) {
+      return 'You';
+    }
+    
+    // For named users, show proper names
+    if (userId.includes('alice')) return 'Alice';
+    if (userId.includes('bob')) return 'Bob';
+    if (userId.includes('charlie')) return 'Charlie';
+    if (userId.includes('person1')) return 'Person 1';
+    if (userId.includes('person2')) return 'Person 2';
+    if (userId.includes('friend')) return 'Friend';
+    
+    // Extract username from email format
+    const username = userId.split('@')[0] || 'User';
+    return username.charAt(0).toUpperCase() + username.slice(1);
+  };
 
   // Check backend health on mount
   useEffect(() => {
@@ -60,34 +83,45 @@ export default function ChatScreen() {
     }
   };
 
-  // Render individual message
+  // Render individual message - WhatsApp style
   const renderMessage = ({ item }: { item: Message }) => {
-    const isMyMessage = item.sender === currentUser;
+    const isMyMessage = item.senderId === currentUser;
+    const displayName = getUserDisplayName(item.senderId || 'unknown');
+    
+    console.log(`Message from ${item.senderId}, current user: ${currentUser}, isMyMessage: ${isMyMessage}`);
     
     return (
       <View style={[
         styles.messageContainer,
-        isMyMessage ? styles.myMessage : styles.otherMessage
+        isMyMessage ? styles.myMessageContainer : styles.otherMessageContainer
       ]}>
+        {!isMyMessage && (
+          <Text style={styles.senderName}>{displayName}</Text>
+        )}
         <View style={[
           styles.messageBubble,
           isMyMessage ? styles.myBubble : styles.otherBubble
         ]}>
-          {!isMyMessage && (
-            <Text style={styles.senderName}>{item.sender}</Text>
-          )}
           <Text style={[
             styles.messageText,
             isMyMessage ? styles.myMessageText : styles.otherMessageText
           ]}>
             {item.text}
           </Text>
-          <Text style={styles.timestamp}>
-            {new Date(item.timestamp).toLocaleTimeString([], { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            })}
-          </Text>
+          <View style={styles.messageFooter}>
+            <Text style={[
+              styles.timestamp,
+              isMyMessage ? styles.myTimestamp : styles.otherTimestamp
+            ]}>
+              {new Date(item.timestamp).toLocaleTimeString([], { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })}
+            </Text>
+            {isMyMessage && (
+              <Text style={styles.checkMark}>✓✓</Text>
+            )}
+          </View>
         </View>
       </View>
     );
@@ -100,10 +134,18 @@ export default function ChatScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Chat with {chatId}</Text>
-        <TouchableOpacity onPress={refreshMessages} style={styles.refreshButton}>
-          <Text style={styles.refreshText}>⟳</Text>
-        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerTitle}>Chat with {chatId}</Text>
+          <Text style={styles.userInfo}>You are: {currentUser}</Text>
+        </View>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity onPress={switchUser} style={styles.switchButton}>
+            <Text style={styles.switchText}>Switch User</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={refreshMessages} style={styles.refreshButton}>
+            <Text style={styles.refreshText}>⟳</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Error display */}
@@ -180,6 +222,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
   },
+  userInfo: {
+    fontSize: 12,
+    color: 'white',
+    opacity: 0.8,
+    marginTop: 2,
+  },
   refreshButton: {
     padding: 8,
   },
@@ -205,6 +253,13 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     marginVertical: 4,
+    paddingHorizontal: 16,
+  },
+  myMessageContainer: {
+    alignItems: 'flex-end',
+  },
+  otherMessageContainer: {
+    alignItems: 'flex-start',
   },
   myMessage: {
     alignItems: 'flex-end',
@@ -213,38 +268,82 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   messageBubble: {
-    maxWidth: '80%',
-    padding: 12,
-    borderRadius: 18,
+    maxWidth: '75%',
+    minWidth: '20%',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
   },
   myBubble: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#DCF8C6', // WhatsApp green
+    borderBottomRightRadius: 4,
+    alignSelf: 'flex-end',
   },
   otherBubble: {
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
+    borderBottomLeftRadius: 4,
+    alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: '#E5E5EA',
   },
   senderName: {
     fontSize: 12,
     color: '#666',
     marginBottom: 4,
-    fontWeight: '500',
+    marginLeft: 4,
+    fontWeight: '600',
   },
   messageText: {
     fontSize: 16,
     lineHeight: 20,
   },
   myMessageText: {
-    color: 'white',
+    color: '#000',
   },
   otherMessageText: {
-    color: '#333',
+    color: '#000',
+  },
+  messageFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginTop: 4,
   },
   timestamp: {
     fontSize: 11,
-    marginTop: 4,
     opacity: 0.7,
+  },
+  myTimestamp: {
+    color: '#666',
+  },
+  otherTimestamp: {
+    color: '#999',
+  },
+  checkMark: {
+    fontSize: 12,
+    color: '#4FC3F7',
+    marginLeft: 4,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  switchButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginLeft: 8,
+  },
+  switchText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '500',
   },
   emptyContainer: {
     flex: 1,

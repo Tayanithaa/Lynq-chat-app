@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "test": "node dist/index.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -13,7 +14,8 @@
     "express": "^4.21.1",
     "firebase-admin": "^12.7.0",
     "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "twilio": "^5.10.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
