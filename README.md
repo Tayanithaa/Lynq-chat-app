@@ -1,16 +1,15 @@
 # LYNQ Chat App 📱
 
-A modern, real-time chat application built with React Native, Expo, and Firebase. Features user authentication, real-time messaging, and a beautiful gradient UI.
+A modern, real-time chat application built with React Native, Expo, and Socket.io. Features 1-on-1 messaging with WhatsApp-style UI and real-time communication.
 
 ## 🚀 Features
 
-- **User Authentication**: Email/Password and Phone number authentication
-- **Real-time Messaging**: Chat with other users in real-time
-- **OTP Verification**: Secure phone number verification with OTP
-- **Beautiful UI**: Modern gradient design with smooth animations
+- **Real-time Messaging**: 1-on-1 chat with instant message delivery
+- **WhatsApp-style UI**: Messages align right (sent) and left (received)
+- **Socket.io Integration**: Real-time WebSocket communication
 - **Cross-platform**: Works on iOS, Android, and Web
-- **Firebase Integration**: Secure backend with Firebase Auth and Firestore
-- **MongoDB Backend**: Node.js/Express backend with MongoDB for user data
+- **Simple Backend**: Express server with in-memory message storage
+- **User Switching**: Test messaging from different user perspectives
 
 ## 📋 Prerequisites
 
@@ -19,7 +18,6 @@ Before running this app, make sure you have the following installed:
 - [Node.js](https://nodejs.org/) (v16 or higher)
 - [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
 - [Expo CLI](https://docs.expo.dev/get-started/installation/)
-- [MongoDB](https://www.mongodb.com/try/download/community) (for backend)
 - [Git](https://git-scm.com/)
 
 ## 🛠️ Installation & Setup
@@ -28,94 +26,39 @@ Before running this app, make sure you have the following installed:
 
 ```bash
 git clone https://github.com/Tayanithaa/Lynq-chat-app.git
-cd Lynq-chat-app/basic-rn
+cd Lynq-chat-app
 ```
 
-### 2. Install Frontend Dependencies
+### 2. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Install Backend Dependencies
+### 3. Environment Configuration
 
-```bash
-cd backend
-npm install
-cd ..
-```
-
-### 4. Environment Configuration
-
-#### Frontend (.env)
 Create a `.env` file in the root directory:
 
 ```env
-# Firebase Configuration
-EXPO_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
-EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
+# API Configuration
+EXPO_PUBLIC_API_BASE_URL=http://localhost:3004
+EXPO_PUBLIC_SOCKET_URL=http://localhost:3004
 ```
-
-#### Backend (backend/.env)
-Create a `.env` file in the backend directory:
-
-```env
-# Database Configuration
-MONGODB_URI=mongodb://localhost:27017/chatapp-backend
-
-# Server Configuration
-PORT=5000
-
-# Environment
-NODE_ENV=development
-```
-
-### 5. Firebase Setup
-
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project or use existing one
-3. Enable Authentication (Email/Password and Phone)
-4. Enable Firestore Database
-5. Copy your config values to the `.env` file
-
-### 6. MongoDB Setup
-
-1. Install MongoDB Community Edition
-2. Start MongoDB service:
-   ```bash
-   # Windows
-   net start MongoDB
-   
-   # macOS
-   brew services start mongodb/brew/mongodb-community
-   
-   # Linux
-   sudo systemctl start mongod
-   ```
 
 ## 🚀 Running the Application
 
 ### Start the Backend Server
 
 ```bash
-cd backend
-npm start
-# or for development with auto-reload
-npm run dev
+node simple-server.js
 ```
 
-The backend server will start on `http://localhost:5000`
+The backend server will start on `http://localhost:3004`
 
 ### Start the Frontend App
 
 ```bash
-# In the root directory (basic-rn)
-npx expo start
+npx expo start --port 8082
 ```
 
 This will start the Expo development server. You can then:
@@ -128,21 +71,21 @@ This will start the Expo development server. You can then:
 ## 📱 App Structure
 
 ```
-basic-rn/
+lynq-chat/
 ├── app/                    # App screens and navigation
-│   ├── index.tsx          # Welcome screen
-│   ├── login.tsx          # Email login screen
-│   ├── loginpage.tsx      # Phone login screen
-│   ├── otp.tsx            # OTP verification
-│   ├── Account-setup.tsx  # User registration
+│   ├── index.tsx          # Main entry point
+│   ├── _layout.tsx        # Auth provider layout
 │   ├── front.tsx          # Main app with tabs
 │   ├── chatscreen.tsx     # Chat list screen
 │   ├── chat/              # Individual chat screens
-│   └── config/            # Firebase configuration
-├── backend/               # Node.js backend
-│   ├── server.js          # Express server
-│   ├── models/            # MongoDB models
-│   └── routes/            # API routes
+│   │   └── [chatId].tsx   # 1-on-1 chat interface
+│   ├── hooks/             # Custom React hooks
+│   │   └── useMessages.ts # Real-time messaging hook
+│   ├── services/          # API services
+│   │   └── apiService.ts  # Message API calls
+│   └── utils/             # Utilities
+│       └── socketConfig.ts# Socket.io configuration
+├── simple-server.js       # Express + Socket.io server
 ├── components/            # Reusable UI components
 ├── assets/                # Images and fonts
 └── README.md
@@ -151,60 +94,50 @@ basic-rn/
 ## 🔧 Available Scripts
 
 ### Frontend
-- `npm start` - Start Expo development server
-- `npm run android` - Start on Android
-- `npm run ios` - Start on iOS
-- `npm run web` - Start on web
-- `npm run lint` - Run ESLint
+- `npx expo start --port 8082` - Start Expo development server
+- `npx expo start --web` - Start on web browser
+- `npx expo start --android` - Start on Android
+- `npx expo start --ios` - Start on iOS
 
 ### Backend
-- `npm start` - Start production server
-- `npm run dev` - Start development server with nodemon
+- `node simple-server.js` - Start the Socket.io server
 
 ## 📚 Key Technologies
 
 - **Frontend**: React Native, Expo, TypeScript
-- **UI**: NativeWind (Tailwind CSS), Linear Gradients
-- **Authentication**: Firebase Auth
-- **Database**: Firebase Firestore, MongoDB
-- **Backend**: Node.js, Express.js, Mongoose
-- **Navigation**: Expo Router, React Navigation
+- **UI**: React Native Components, Material Top Tabs
+- **Real-time Communication**: Socket.io WebSockets
+- **Backend**: Node.js, Express.js, Socket.io
+- **Navigation**: Expo Router
+- **State Management**: React Hooks (useState, useEffect)
 
 ## 🎨 UI Features
 
-- **Gradient Backgrounds**: Beautiful green-to-dark gradients
-- **Modern Components**: Clean, iOS-style UI elements
-- **Responsive Design**: Works on all screen sizes
-- **Smooth Animations**: React Native Reanimated
-- **Tab Navigation**: Material Top Tabs for main sections
+- **WhatsApp-style Messages**: Right-aligned (sent), left-aligned (received)
+- **Real-time Updates**: Messages appear instantly via WebSockets
+- **Clean Design**: Simple, modern chat interface
+- **User Switching**: Test different user perspectives
+- **Tab Navigation**: Material Top Tabs for different sections
 
-## 🔐 Authentication Flow
+## � Chat Features
 
-1. **Welcome Screen**: App introduction with privacy policy
-2. **Login Options**: Email/password or phone number
-3. **OTP Verification**: For phone number authentication
-4. **Registration**: New user account creation
-5. **Main App**: Access to chat, updates, and calls
+1. **1-on-1 Messaging**: Simple Person 1 ↔ Person 2 chat
+2. **Real-time Delivery**: Instant message sending/receiving
+3. **Message History**: Persistent message storage
+4. **User Identification**: Automatic user assignment
+5. **WhatsApp-style UI**: Familiar chat interface
 
-## 🗄️ Database Schema
+## 🗄️ Data Storage
 
-### MongoDB (Users)
+### In-Memory Storage (Simple Server)
 ```javascript
+// Messages stored temporarily in server memory
 {
-  phone: String (unique),
-  name: String,
-  profileImage: String
-}
-```
-
-### Firebase Firestore (Users)
-```javascript
-{
-  name: String,
-  mobile: String,
-  email: String,
-  password: String (hashed),
-  createdAt: String
+  id: String,
+  text: String,
+  senderId: String,
+  receiverId: String,
+  timestamp: String
 }
 ```
 
@@ -212,43 +145,68 @@ basic-rn/
 
 ### Common Issues
 
-1. **Expo Doctor Errors**
+1. **Backend Connection Error**
+   - Ensure `simple-server.js` is running on port 3004
+   - Check if port 3004 is available: `netstat -ano | findstr :3004`
+
+2. **Socket.io Connection Issues**
+   - Verify EXPO_PUBLIC_SOCKET_URL in .env file
+   - Check browser console for WebSocket errors
+
+3. **Expo Metro Bundler Issues**
    ```bash
-   npx expo-doctor
-   npx expo install --fix
+   npx expo start --clear --port 8082
    ```
 
-2. **MongoDB Connection Error**
-   - Ensure MongoDB is running
-   - Check connection string in backend/.env
-
-3. **Firebase Authentication Issues**
-   - Verify Firebase config in .env
-   - Check Firebase console for enabled auth methods
-
-4. **Metro Bundler Issues**
-   ```bash
-   npx expo start --clear
-   ```
+4. **Messages Not Appearing**
+   - Check backend server logs
+   - Verify Socket.io connection in browser dev tools
+   - Try refreshing the page
 
 ### Development Tips
 
-- Use `npx expo-doctor` to check for common issues
-- Run `npx expo install --fix` to update dependencies
-- Check logs in Expo Dev Tools for detailed error information
-- Use React Native Debugger for debugging
+- Use browser dev tools to monitor WebSocket connections
+- Check server logs for Socket.io events
+- Test with multiple browser tabs to simulate different users
+- Use the "Switch User" button to test message alignment
 
-## 🔮 Future Features (Original Vision)
+## 🎯 How to Test
 
-### 🔐 Advanced Security Features
-- **End-to-End Encryption**: X25519 key exchange with ChaCha20-Poly1305
-- **Auto-Link Verification**: Automatic scanning for malicious links
-- **Forward Secrecy**: Enhanced message security
+1. **Start Both Servers**:
+   ```bash
+   # Terminal 1: Backend
+   node simple-server.js
+   
+   # Terminal 2: Frontend
+   npx expo start --port 8082
+   ```
 
-### 📡 Smart Features
-- **Word Lookup**: In-chat dictionary functionality
-- **Real-time Translation**: Automatic language translation
-- **Auto-Block Unsafe Content**: AI-powered content filtering
+2. **Open in Browser**: Navigate to `http://localhost:8082`
+
+3. **Test Messaging**:
+   - Go to "Chats" tab → Click "Person 2"
+   - Send a message (appears on right in green)
+   - Click "Switch User" to become the other person
+   - Send another message (appears on right for current user)
+   - Switch back to see the conversation from original perspective
+
+4. **Test Real-time**: Open multiple browser tabs to see instant message delivery
+
+## 🔮 Future Enhancements
+
+### � Planned Features
+- **Multi-user Support**: Group chat functionality
+- **Message Persistence**: Database storage for message history
+- **User Authentication**: Login/signup system
+- **File Sharing**: Send images and documents
+- **Message Status**: Delivery and read receipts
+- **Push Notifications**: Real-time notifications
+
+### � Advanced Features (Future Vision)
+- **End-to-End Encryption**: Secure message encryption
+- **Auto-Link Verification**: Scan for malicious links
+- **Smart Features**: Translation, word lookup
+- **Content Filtering**: AI-powered safety features
 
 ## 🤝 Contributing
 
