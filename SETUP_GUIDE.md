@@ -19,7 +19,7 @@ Edit `backend/.env`:
 ENABLE_REAL_SMS=true
 
 # Twilio Configuration
-TWILIO_ACCOUNT_SID=AC1234567890abcdef1234567890abcdef
+TWILIO_ACCOUNT_SID=your_twilio_account_sid_here
 TWILIO_AUTH_TOKEN=your_auth_token_here
 TWILIO_PHONE_NUMBER=+1234567890
 ```
