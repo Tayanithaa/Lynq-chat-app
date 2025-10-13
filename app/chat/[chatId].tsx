@@ -109,15 +109,23 @@ export default function ChatScreen() {
             {item.text}
           </Text>
           <View style={styles.messageFooter}>
-            <Text style={[
-              styles.timestamp,
-              isMyMessage ? styles.myTimestamp : styles.otherTimestamp
-            ]}>
-              {new Date(item.timestamp).toLocaleTimeString([], { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              })}
-            </Text>
+            <View style={styles.timestampContainer}>
+              <Text style={[
+                styles.timestamp,
+                isMyMessage ? styles.myTimestamp : styles.otherTimestamp
+              ]}>
+                {new Date(item.timestamp).toLocaleTimeString([], { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })}
+              </Text>
+              {item.isEncrypted && (
+                <Text style={[
+                  styles.encryptionIcon,
+                  isMyMessage ? styles.myEncryptionIcon : styles.otherEncryptionIcon
+                ]}>🔒</Text>
+              )}
+            </View>
             {isMyMessage && (
               <Text style={styles.checkMark}>✓✓</Text>
             )}
@@ -314,6 +322,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 4,
   },
+  timestampContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   timestamp: {
     fontSize: 11,
     opacity: 0.7,
@@ -322,6 +334,17 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   otherTimestamp: {
+    color: '#999',
+  },
+  encryptionIcon: {
+    fontSize: 9,
+    marginLeft: 3,
+    opacity: 0.8,
+  },
+  myEncryptionIcon: {
+    color: '#666',
+  },
+  otherEncryptionIcon: {
     color: '#999',
   },
   checkMark: {

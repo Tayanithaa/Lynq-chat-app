@@ -13,7 +13,9 @@ export interface Message {
   senderId: string;
   receiverId: string;
   text: string;
+  encryptedText?: string; // Store encrypted version
   timestamp: string;
+  isEncrypted?: boolean; // Flag to indicate if message is encrypted
 }
 
 export interface MessageResponse {
@@ -93,7 +95,7 @@ class ApiService {
   }
 
   // Send a new message
-  async sendMessage(sender: string, receiver: string, text: string): Promise<Message | null> {
+  async sendMessage(sender: string, receiver: string, text: string, encryptedText?: string, isEncrypted?: boolean): Promise<Message | null> {
     try {
       // Try authenticated endpoint first
       const response: SendMessageResponse = await this.makeRequest('/api/messages', {
@@ -101,7 +103,9 @@ class ApiService {
         body: JSON.stringify({ 
           senderId: sender, 
           receiverId: receiver, 
-          text 
+          text,
+          encryptedText,
+          isEncrypted: isEncrypted || false
         }),
       });
       
@@ -116,7 +120,9 @@ class ApiService {
           body: JSON.stringify({ 
             senderId: sender, 
             receiverId: receiver, 
-            text 
+            text,
+            encryptedText,
+            isEncrypted: isEncrypted || false
           }),
         });
         

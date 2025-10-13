@@ -3,29 +3,31 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService, Message } from '../services/apiService';
+import MessageEncryption from '../utils/encryption';
 import { getSocketConfig, getSocketUrl } from '../utils/socketConfig';
+import { Storage } from '../utils/storage';
 
 export const useMessages = (otherUserId?: string) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<string>('');
   const socketRef = useRef<Socket | null>(null);
   
   // Get current user from auth context with simple differentiation
   const { user } = useAuth();
   
   // Create different user IDs for testing by checking URL or creating unique session
-  const getCurrentUserId = () => {
-    if (typeof window !== 'undefined') {
-      // Check if there's a user parameter in URL
-      const urlParams = new URLSearchParams(window.location.search);
-      const userParam = urlParams.get('user');
+  const getCurrentUserId = useCallback(async (): Promise<string> => {
+    try {
+      // Check if there's a user parameter in URL (web only)
+      const userParam = Storage.getURLParam('user');
       if (userParam) {
         return `${userParam}@example.com`;
       }
       
-      // Create different users based on localStorage or random assignment
-      let userId = localStorage.getItem('lynq-user-id');
+      // Create different users based on storage or random assignment
+      let userId = await Storage.getItem('lynq-user-id');
       if (!userId) {
         // Generate user IDs for simple 1-on-1 - alternating between Person 1 and Person 2
         const random = Math.random();
@@ -34,15 +36,36 @@ export const useMessages = (otherUserId?: string) => {
         } else {
           userId = 'person2@example.com';
         }
-        localStorage.setItem('lynq-user-id', userId);
+        await Storage.setItem('lynq-user-id', userId);
       }
       console.log('🧑 Current user ID:', userId);
       return userId;
+    } catch (error) {
+      console.error('Error getting user ID:', error);
+      return user?.email || user?.uid || 'web-user@example.com';
     }
-    return user?.email || user?.uid || 'web-user@example.com';
-  };
-  
-  const currentUser = getCurrentUserId();
+  }, [user]);
+
+  // Initialize current user
+  useEffect(() => {
+    const initializeUser = async () => {
+      const userId = await getCurrentUserId();
+      setCurrentUser(userId);
+    };
+    initializeUser();
+  }, [getCurrentUserId]);
+
+  // Generate encryption key for this chat
+  const getEncryptionKey = useCallback(() => {
+    const users = ['person1@example.com', 'person2@example.com'];
+    return MessageEncryption.generateUserKey(users[0], users[1]);
+  }, []);
+
+  // Test encryption on first load
+  useEffect(() => {
+    console.log('🔐 Testing encryption system...');
+    MessageEncryption.test();
+  }, []);
 
   // Load messages
   const loadMessages = useCallback(async () => {
@@ -59,15 +82,25 @@ export const useMessages = (otherUserId?: string) => {
         (msg.senderId === 'person1@example.com' || msg.senderId === 'person2@example.com') &&
         (msg.receiverId === 'person1@example.com' || msg.receiverId === 'person2@example.com')
       );
+
+      // Decrypt messages if they are encrypted
+      const encryptionKey = getEncryptionKey();
+      const decryptedMessages = conversationMessages.map(msg => {
+        if (msg.isEncrypted && msg.encryptedText) {
+          const decryptedText = MessageEncryption.decrypt(msg.encryptedText, encryptionKey);
+          return { ...msg, text: decryptedText };
+        }
+        return msg;
+      });
       
-      setMessages(conversationMessages);
-      console.log(`📋 Loaded ${conversationMessages.length} messages for 1-on-1 chat`);
+      setMessages(decryptedMessages);
+      console.log(`📋 Loaded ${decryptedMessages.length} messages for 1-on-1 chat (${conversationMessages.filter(m => m.isEncrypted).length} encrypted)`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load messages');
     } finally {
       setLoading(false);
     }
-  }, []); // No dependency on currentUser since we filter by person1/person2 directly
+  }, [getEncryptionKey]); // Added dependency for encryption key
 
   // Send a message
   const sendMessage = useCallback(async (text: string, receiverId?: string) => {
@@ -92,21 +125,27 @@ export const useMessages = (otherUserId?: string) => {
     setError(null);
     
     try {
-      console.log(`📤 Sending message from ${currentUser} to ${receiver}: "${text}"`);
-      const newMessage = await apiService.sendMessage(currentUser, receiver, text);
+      // Encrypt the message
+      const encryptionKey = getEncryptionKey();
+      const encryptedText = MessageEncryption.encrypt(text, encryptionKey);
+      
+      console.log(`📤 Sending encrypted message from ${currentUser} to ${receiver}: "${text}"`);
+      
+      // Send both plain text (for fallback) and encrypted text
+      const newMessage = await apiService.sendMessage(currentUser, receiver, text, encryptedText, true);
       
       if (newMessage) {
-        console.log('📤 Message sent successfully, waiting for Socket.io update');
+        console.log('📤 Encrypted message sent successfully, waiting for Socket.io update');
         return true;
       } else {
-        setError('Failed to send message');
+        setError('Failed to send encrypted message');
         return false;
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send message');
+      setError(err instanceof Error ? err.message : 'Failed to send encrypted message');
       return false;
     }
-  }, [currentUser]);
+  }, [currentUser, getEncryptionKey]); // Added getEncryptionKey dependency
 
   // Check backend health
   const checkHealth = useCallback(async () => {
@@ -149,16 +188,26 @@ export const useMessages = (otherUserId?: string) => {
       });
 
       socketRef.current.on('message', (msg: Message) => {
-        console.log('📨 Received message via Socket.io:', msg);
+        console.log('📨 Received encrypted message via Socket.io:', msg);
+        
+        // Decrypt message if it's encrypted
+        let decryptedMessage = { ...msg };
+        if (msg.isEncrypted && msg.encryptedText) {
+          const encryptionKey = getEncryptionKey();
+          const decryptedText = MessageEncryption.decrypt(msg.encryptedText, encryptionKey);
+          decryptedMessage.text = decryptedText;
+          console.log('🔓 Message decrypted successfully');
+        }
+        
         setMessages(prev => {
           // Check if message already exists to prevent duplicates
-          const exists = prev.some(m => m.id === msg.id);
+          const exists = prev.some(m => m.id === decryptedMessage.id);
           if (exists) {
-            console.log('⚠️ Message already exists, skipping:', msg.id);
+            console.log('⚠️ Message already exists, skipping:', decryptedMessage.id);
             return prev;
           }
-          console.log('✅ Adding new message to state:', msg.id);
-          return [...prev, msg];
+          console.log('✅ Adding new decrypted message to state:', decryptedMessage.id);
+          return [...prev, decryptedMessage];
         });
       });
 
@@ -177,12 +226,12 @@ export const useMessages = (otherUserId?: string) => {
       socketRef.current?.disconnect();
       socketRef.current = null;
     };
-  }, []);
+  }, [getEncryptionKey]); // Added getEncryptionKey dependency
 
   // Function to switch between users for testing
-  const switchUser = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      const currentUserId = localStorage.getItem('lynq-user-id');
+  const switchUser = useCallback(async () => {
+    try {
+      const currentUserId = await Storage.getItem('lynq-user-id');
       let newUserId;
       
       if (currentUserId === 'person1@example.com') {
@@ -191,11 +240,16 @@ export const useMessages = (otherUserId?: string) => {
         newUserId = 'person1@example.com';
       }
       
-      localStorage.setItem('lynq-user-id', newUserId);
+      await Storage.setItem('lynq-user-id', newUserId);
       console.log(`🔄 Switched user from ${currentUserId} to ${newUserId}`);
       
-      // Reload the page to reflect the user change
-      window.location.reload();
+      // Update the current user state
+      setCurrentUser(newUserId);
+      
+      // Reload the page only on web platforms
+      Storage.reloadPage();
+    } catch (error) {
+      console.error('Error switching user:', error);
     }
   }, []);
 

@@ -1,7 +1,7 @@
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { getAuth } from "firebase/auth";
 import React, { useEffect, useRef, useState } from "react";
-import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { Button, FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { ImageMessage } from "./services/imageService";
 import { initSocket } from "./socket";
 

@@ -1,11 +1,10 @@
-# LYNQ Chat App 📱
+ # LYNQ Chat App 📱
 
 A modern, real-time chat application built with React Native, Expo, and Socket.io. Features 1-on-1 messaging with WhatsApp-style UI and real-time communication.
 
 ## 🚀 Features
 
 - **Real-time Messaging**: 1-on-1 chat with instant message delivery
-- **WhatsApp-style UI**: Messages align right (sent) and left (received)
 - **Socket.io Integration**: Real-time WebSocket communication
 - **Cross-platform**: Works on iOS, Android, and Web
 - **Simple Backend**: Express server with in-memory message storage
@@ -153,12 +152,18 @@ lynq-chat/
    - Verify EXPO_PUBLIC_SOCKET_URL in .env file
    - Check browser console for WebSocket errors
 
-3. **Expo Metro Bundler Issues**
+3. **localStorage Error on Mobile** ⚠️ **FIXED**
+   - **Error**: `Property 'localStorage' doesn't exist`
+   - **Solution**: Updated to use cross-platform storage utility
+   - **Files Modified**: `app/utils/storage.ts`, `app/hooks/useMessages.ts`
+   - Uses AsyncStorage for mobile and localStorage for web
+
+4. **Expo Metro Bundler Issues**
    ```bash
    npx expo start --clear --port 8082
    ```
 
-4. **Messages Not Appearing**
+5. **Messages Not Appearing**
    - Check backend server logs
    - Verify Socket.io connection in browser dev tools
    - Try refreshing the page
@@ -221,10 +226,9 @@ lynq-chat/
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 👥 Team
-
+- **Tayanithaa N S** - *Team Member*
 - **Mirdula R** - *Team Member*
 - **Piriyadharshini L K** - *Team Member*
-- **Tayanithaa N S** - *Team Member*
 - **Logesh Raj B** - *Team Member*
 - **Jaisurya S** - *Team Member*
 

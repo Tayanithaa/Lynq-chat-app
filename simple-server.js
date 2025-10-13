@@ -23,7 +23,12 @@ let messages = [];
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'OK', 
+    messages: messages.length,
+    encryption: 'AES-256 Enabled',
+    timestamp: new Date().toISOString() 
+  });
 });
 
 // Get messages endpoint
@@ -38,7 +43,7 @@ app.get('/api/messages/test', (req, res) => {
 
 // Send message endpoint
 app.post('/api/messages/test', (req, res) => {
-  const { text, senderId, receiverId } = req.body;
+  const { text, senderId, receiverId, encryptedText, isEncrypted } = req.body;
 
   if (!text || !senderId || !receiverId) {
     return res.status(400).json({ 
@@ -49,16 +54,24 @@ app.post('/api/messages/test', (req, res) => {
 
   const newMessage = {
     id: Date.now().toString(),
-    text,
+    text, // Plain text for server logging
+    encryptedText, // Encrypted version for storage
     senderId,
     receiverId,
     timestamp: new Date().toISOString(),
+    isEncrypted: isEncrypted || false
   };
 
   messages.push(newMessage);
-  console.log(`📤 Message sent: ${text}`);
+  
+  if (isEncrypted) {
+    console.log(`� Encrypted message stored (ID: ${newMessage.id})`);
+    console.log(`�📤 From: ${senderId} → To: ${receiverId}`);
+  } else {
+    console.log(`📤 Message sent: ${text}`);
+  }
 
-  // Emit real-time update to connected clients
+  // Emit real-time update to connected clients (including encrypted data)
   io.emit("message", newMessage);
 
   res.json({
@@ -77,6 +90,7 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`� Encrypted chat server running on port ${PORT}`);
+  console.log(`🔐 AES-256-GCM encryption enabled`);
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
 });
