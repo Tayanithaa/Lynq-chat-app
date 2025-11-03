@@ -1,9 +1,9 @@
-// config/firebaseConfig.ts
-import { FirebaseApp, initializeApp } from "firebase/app";
-import { Auth, getAuth } from "firebase/auth";
-import { Firestore, getFirestore } from "firebase/firestore";
+// config/firebaseConfig.js
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
-// Firebase configuration with error handling
+// Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "AIzaSyBVIez9IvqLfzI-sBUfnIdJlsH8MY0qffI",
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "otpauth-74252.firebaseapp.com",
@@ -27,9 +27,9 @@ if (__DEV__) {
   });
 }
 
-let app: FirebaseApp | null = null;
-let auth: Auth;
-let db: Firestore;
+let app;
+let auth;
+let db;
 
 try {
   // Initialize Firebase with error handling
@@ -40,7 +40,7 @@ try {
   if (__DEV__) {
     console.log("✅ Firebase initialized successfully");
   }
-} catch (error: any) {
+} catch (error) {
   console.error("❌ Firebase initialization error:", error.message);
   
   // Create mock objects for development when Firebase fails
@@ -48,22 +48,10 @@ try {
     currentUser: null,
     signInWithEmailAndPassword: () => Promise.reject(new Error("Firebase unavailable")),
     createUserWithEmailAndPassword: () => Promise.reject(new Error("Firebase unavailable")),
-    signOut: () => Promise.resolve(),
-    onAuthStateChanged: () => () => {},
-  } as any;
+  };
   
-  db = {
-    collection: () => ({
-      add: () => Promise.reject(new Error("Firebase unavailable")),
-      doc: () => ({
-        set: () => Promise.reject(new Error("Firebase unavailable")),
-        get: () => Promise.reject(new Error("Firebase unavailable")),
-      }),
-    }),
-  } as any;
-  
-  console.warn("⚠️ Using mock Firebase objects for development");
+  db = null;
 }
 
-export { auth, db };
+export { app, auth, db };
 export default app;

@@ -3,7 +3,6 @@ const cors = require('cors');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const CryptoJS = require('crypto-js');
-const admin = require('firebase-admin');
 
 const app = express();
 const server = createServer(app);
@@ -13,156 +12,28 @@ const io = new Server(server, {
     methods: ["GET", "POST"]
   }
 });
-    text, // Plain text for server logging
-    encryptedText, // Encrypted version for storage
-    senderId,
-    receiverId,
-    participants: [senderId, receiverId], // For Firebase querying
-    timestamp: new Date().toISOString(),
-    isEncrypted: isEncrypted || false,
-    // Add decryption result for debugging
-    ...(decryptedFromEncrypted && { backendDecrypted: decryptedFromEncrypted })
-  };
-
-  // Save to Firebase (with fallback to in-memory)
-  const savedMessageId = await saveMessage(newMessage);
-  newMessage.id = savedMessageId;
-  
-  console.log('🔥 =====================================================\n'); "POST"]
-  }
-});
 
 const PORT = 3004;
-
-// Firebase Admin SDK initialization
-let db;
-try {
-  // Initialize Firebase Admin with minimal config for Firestore
-  if (!admin.apps.length) {
-    admin.initializeApp({
-      projectId: 'otpauth-74252', // Your Firebase project ID
-    });
-  }
-  db = admin.firestore();
-  console.log('🔥 Firebase Admin initialized successfully');
-} catch (error) {
-  console.error('❌ Firebase initialization failed:', error.message);
-  console.log('💡 Running in memory-only mode');
-  db = null;
-}
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
 
-// In-memory storage (fallback when Firebase is not available)
+// In-memory storage (simplified for demonstration)
 let messages = [];
-let users = {}; // Store user sessions and data
-let userSessions = {}; // Track active sessions
+let users = {};
+let userSessions = {};
 
 // Helper function to generate session token
 function generateSessionToken() {
   return CryptoJS.lib.WordArray.random(32).toString();
 }
 
-// Firebase storage functions
-async function saveMessage(messageData) {
-  if (db) {
-    try {
-      const docRef = await db.collection('messages').add({
-        ...messageData,
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-      console.log('💾 Message saved to Firebase:', docRef.id);
-      return docRef.id;
-    } catch (error) {
-      console.error('❌ Failed to save message to Firebase:', error);
-      // Fallback to in-memory storage
-      messages.push(messageData);
-      return messageData.id;
-    }
-  } else {
-    // Use in-memory storage
-    messages.push(messageData);
-    return messageData.id;
-  }
-}
-
-async function getMessagesForUser(username) {
-  if (db) {
-    try {
-      const messagesSnapshot = await db.collection('messages')
-        .where('participants', 'array-contains', username)
-        .orderBy('createdAt', 'asc')
-        .get();
-      
-      const userMessages = [];
-      messagesSnapshot.forEach(doc => {
-        userMessages.push({ id: doc.id, ...doc.data() });
-      });
-      
-      console.log(`🔥 Retrieved ${userMessages.length} messages for ${username} from Firebase`);
-      return userMessages;
-    } catch (error) {
-      console.error('❌ Failed to retrieve messages from Firebase:', error);
-      // Fallback to in-memory storage
-      return messages.filter(msg => 
-        msg.senderId === username || msg.receiverId === username
-      );
-    }
-  } else {
-    // Use in-memory storage
-    return messages.filter(msg => 
-      msg.senderId === username || msg.receiverId === username
-    );
-  }
-}
-
-async function saveUser(userData) {
-  if (db) {
-    try {
-      await db.collection('users').doc(userData.username).set({
-        ...userData,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-      console.log('💾 User saved to Firebase:', userData.username);
-    } catch (error) {
-      console.error('❌ Failed to save user to Firebase:', error);
-      // Fallback to in-memory storage
-      users[userData.username] = userData;
-    }
-  } else {
-    // Use in-memory storage
-    users[userData.username] = userData;
-  }
-}
-
-async function getUser(username) {
-  if (db) {
-    try {
-      const userDoc = await db.collection('users').doc(username).get();
-      if (userDoc.exists) {
-        console.log('🔥 Retrieved user from Firebase:', username);
-        return userDoc.data();
-      }
-      return null;
-    } catch (error) {
-      console.error('❌ Failed to retrieve user from Firebase:', error);
-      // Fallback to in-memory storage
-      return users[username] || null;
-    }
-  } else {
-    // Use in-memory storage
-    return users[username] || null;
-  }
-}
-
-// Decryption function (matches your app's MessageEncryption.decrypt exactly)
+// Decryption function
 function decryptMessage(encryptedText, senderId, receiverId) {
   try {
-    // Match your app's key generation exactly: sort users + hash with SECRET_KEY
-    const SECRET_KEY = 'lynq-chat-secret-key-2024-secure'; // Remove the dash prefix
+    const SECRET_KEY = 'lynq-chat-secret-key-2024-secure';
     const combined = [senderId, receiverId].sort().join('-');
     const secretKey = CryptoJS.SHA256(combined + SECRET_KEY).toString();
     
@@ -196,8 +67,8 @@ app.get('/health', (req, res) => {
   });
 });
 
-// User registration/login endpoint
-app.post('/api/auth/login', async (req, res) => {
+// Authentication endpoints
+app.post('/api/auth/login', (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -210,23 +81,19 @@ app.post('/api/auth/login', async (req, res) => {
   console.log(`\n🔐 LOGIN ATTEMPT: ${username}`);
 
   // Check if user exists
-  const existingUser = await getUser(username);
-  let userData;
-  
-  if (!existingUser) {
-    // Create new user (auto-registration for demo)
-    userData = {
+  if (!users[username]) {
+    // Create new user (auto-registration)
+    users[username] = {
       username,
-      password: CryptoJS.SHA256(password).toString(), // Hash password
+      password: CryptoJS.SHA256(password).toString(),
       createdAt: new Date().toISOString(),
       lastLogin: new Date().toISOString()
     };
-    await saveUser(userData);
     console.log(`✅ NEW USER CREATED: ${username}`);
   } else {
     // Verify existing user
     const hashedPassword = CryptoJS.SHA256(password).toString();
-    if (existingUser.password !== hashedPassword) {
+    if (users[username].password !== hashedPassword) {
       console.log(`❌ INVALID PASSWORD for: ${username}`);
       return res.status(401).json({ 
         success: false,
@@ -234,11 +101,7 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
     
-    userData = {
-      ...existingUser,
-      lastLogin: new Date().toISOString()
-    };
-    await saveUser(userData);
+    users[username].lastLogin = new Date().toISOString();
     console.log(`✅ USER LOGGED IN: ${username}`);
   }
 
@@ -249,8 +112,10 @@ app.post('/api/auth/login', async (req, res) => {
     loginTime: new Date().toISOString()
   };
 
-  // Get user's message history from Firebase
-  const userMessages = await getMessagesForUser(username);
+  // Get user's message history
+  const userMessages = messages.filter(msg => 
+    msg.senderId === username || msg.receiverId === username
+  );
 
   console.log(`📨 FOUND ${userMessages.length} messages for user: ${username}`);
 
@@ -260,15 +125,14 @@ app.post('/api/auth/login', async (req, res) => {
       user: {
         username,
         sessionToken,
-        lastLogin: userData.lastLogin
+        lastLogin: users[username].lastLogin
       },
       messageHistory: userMessages
     }
   });
 });
 
-// Session validation endpoint
-app.post('/api/auth/validate', async (req, res) => {
+app.post('/api/auth/validate', (req, res) => {
   const { sessionToken } = req.body;
 
   if (!sessionToken || !userSessions[sessionToken]) {
@@ -281,9 +145,10 @@ app.post('/api/auth/validate', async (req, res) => {
   const session = userSessions[sessionToken];
   const username = session.username;
 
-  // Get user data and message history from Firebase
-  const userData = await getUser(username);
-  const userMessages = await getMessagesForUser(username);
+  // Get user's message history
+  const userMessages = messages.filter(msg => 
+    msg.senderId === username || msg.receiverId === username
+  );
 
   console.log(`✅ SESSION VALID for: ${username} (${userMessages.length} messages)`);
 
@@ -292,14 +157,13 @@ app.post('/api/auth/validate', async (req, res) => {
     data: {
       user: {
         username,
-        lastLogin: userData?.lastLogin || new Date().toISOString()
+        lastLogin: users[username].lastLogin
       },
       messageHistory: userMessages
     }
   });
 });
 
-// Logout endpoint
 app.post('/api/auth/logout', (req, res) => {
   const { sessionToken } = req.body;
 
@@ -312,11 +176,10 @@ app.post('/api/auth/logout', (req, res) => {
   res.json({ success: true });
 });
 
-// Get messages endpoint
+// Message endpoints
 app.get('/api/messages/test', (req, res) => {
   console.log(`\n📋 RETRIEVING MESSAGES: ${messages.length} total`);
   
-  // Show encryption status of stored messages
   messages.forEach((msg, index) => {
     console.log(`\n📨 Message ${index + 1}:`);
     console.log(`   ID: ${msg.id}`);
@@ -327,7 +190,6 @@ app.get('/api/messages/test', (req, res) => {
       console.log(`   Original: "${msg.text}"`);
       console.log(`   Encrypted: "${msg.encryptedText.substring(0, 50)}..."`);
       
-      // Try to decrypt
       const decrypted = decryptMessage(msg.encryptedText, msg.senderId, msg.receiverId);
       console.log(`   Backend Decrypted: "${decrypted}"`);
       console.log(`   Match: ${msg.text === decrypted ? '✅' : '❌'}`);
@@ -343,8 +205,7 @@ app.get('/api/messages/test', (req, res) => {
   });
 });
 
-// Send message endpoint
-app.post('/api/messages/test', async (req, res) => {
+app.post('/api/messages/test', (req, res) => {
   const { text, senderId, receiverId, encryptedText, isEncrypted } = req.body;
 
   if (!text || !senderId || !receiverId) {
@@ -382,20 +243,20 @@ app.post('/api/messages/test', async (req, res) => {
 
   const newMessage = {
     id: Date.now().toString(),
-    text, // Plain text for server logging
-    encryptedText, // Encrypted version for storage
+    text,
+    encryptedText,
     senderId,
     receiverId,
+    participants: [senderId, receiverId],
     timestamp: new Date().toISOString(),
     isEncrypted: isEncrypted || false,
-    // Add decryption result for debugging
     ...(decryptedFromEncrypted && { backendDecrypted: decryptedFromEncrypted })
   };
 
   messages.push(newMessage);
-  console.log('� =====================================================\n');
+  console.log('🔥 =====================================================\n');
 
-  // Emit real-time update to connected clients (including encrypted data)
+  // Emit real-time update to connected clients
   io.emit("message", newMessage);
 
   res.json({
@@ -414,7 +275,7 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`� Encrypted chat server running on port ${PORT}`);
+  console.log(`🚀 Encrypted chat server running on port ${PORT}`);
   console.log(`🔐 AES-256-GCM encryption enabled`);
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
 });

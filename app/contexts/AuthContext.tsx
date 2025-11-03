@@ -1,22 +1,21 @@
 // contexts/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { auth } from '../config/firebaseconfig';
+import { Storage } from '../utils/storage';
 
-// Explicitly type auth to handle both Firebase and mock implementations
-const firebaseAuth: any = auth as any;
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3004';
 
 interface User {
   uid: string;
-  email?: string;
+  username: string;
   displayName?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (username: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (username: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,24 +23,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    // During development, provide more helpful error info
-    console.error('useAuth called outside of AuthProvider. Make sure the component is wrapped in AuthProvider.');
-    console.error('Current AuthContext value:', context);
-    console.error('Component stack trace at time of error:');
-    console.trace();
-    
-    // In development, return a fallback instead of throwing
-    if (__DEV__) {
-      console.warn('🚨 Returning fallback auth context for development');
-      return {
-        user: null,
-        isLoading: false,
-        signIn: async () => { throw new Error('Auth not available'); },
-        signOut: async () => { throw new Error('Auth not available'); },
-        signUp: async () => { throw new Error('Auth not available'); },
-      };
-    }
-    
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
@@ -54,78 +35,94 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   console.log('🔧 AuthProvider initializing...');
 
   useEffect(() => {
-    // Check if Firebase auth is available
-    if (firebaseAuth && typeof firebaseAuth.onAuthStateChanged === 'function') {
-      // Firebase is available
-      const unsubscribe = firebaseAuth.onAuthStateChanged((firebaseUser: any) => {
-        if (firebaseUser) {
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email || undefined,
-            displayName: firebaseUser.displayName || undefined,
-          });
-        } else {
-          setUser(null);
-        }
-        setIsLoading(false);
-      });
-
-      return unsubscribe;
-    } else {
-      // Firebase not available - create a default user for development
-      console.log('🔧 Firebase auth not available, using default user for development');
-      setUser({
-        uid: 'dev-user-' + Date.now(),
-        email: 'web-user@example.com',
-        displayName: 'Development User',
-      });
-      setIsLoading(false);
-    }
+    validateToken();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    setIsLoading(true);
+  const validateToken = async () => {
     try {
-      if (firebaseAuth && typeof firebaseAuth.signInWithEmailAndPassword === 'function') {
-        // Use real Firebase auth
-        const { signInWithEmailAndPassword } = await import('firebase/auth');
-        await signInWithEmailAndPassword(firebaseAuth, email, password);
+      const token = await Storage.getItem('lynq-auth-token');
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.data.user);
+        console.log('✅ Token validated, user logged in:', data.data.user.username);
       } else {
-        // Mock authentication for development
-        console.log('🔧 Mock authentication - signing in user');
-        setUser({
-          uid: 'mock-user-' + Date.now(),
-          email: email,
-          displayName: email.split('@')[0],
-        });
+        await Storage.removeItem('lynq-auth-token');
+        console.log('❌ Token invalid, user logged out');
       }
     } catch (error) {
-      console.error('Sign in error:', error);
-      throw error;
+      console.error('Token validation error:', error);
+      await Storage.removeItem('lynq-auth-token');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+
+  const signIn = async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      if (firebaseAuth && typeof firebaseAuth.createUserWithEmailAndPassword === 'function') {
-        // Use real Firebase auth
-        const { createUserWithEmailAndPassword } = await import('firebase/auth');
-        await createUserWithEmailAndPassword(firebaseAuth, email, password);
-      } else {
-        // Mock authentication for development
-        console.log('🔧 Mock authentication - creating user');
-        setUser({
-          uid: 'new-user-' + Date.now(),
-          email: email,
-          displayName: email.split('@')[0],
-        });
+      console.log('🔐 AuthContext signIn - calling API...');
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await response.json();
+      console.log('📦 Login response:', { ok: response.ok, data });
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
       }
-    } catch (error) {
+
+      await Storage.setItem('lynq-auth-token', data.data.token);
+      console.log('💾 Token saved, setting user:', data.data.user);
+      setUser(data.data.user);
+      
+      console.log('✅ User logged in:', data.data.user.username);
+    } catch (error: any) {
+      console.error('❌ Sign in error:', error);
+      throw new Error(error.message || 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signUp = async (username: string, password: string, displayName?: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, displayName: displayName || username })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+
+      await Storage.setItem('lynq-auth-token', data.data.token);
+      setUser(data.data.user);
+      
+      console.log('✅ User registered:', data.data.user.username);
+    } catch (error: any) {
       console.error('Sign up error:', error);
-      throw error;
+      throw new Error(error.message || 'Registration failed');
     } finally {
       setIsLoading(false);
     }
@@ -133,12 +130,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      if (firebaseAuth && typeof firebaseAuth.signOut === 'function') {
-        await firebaseAuth.signOut();
-      } else {
-        // Mock sign out
-        setUser(null);
-      }
+      await Storage.removeItem('lynq-auth-token');
+      setUser(null);
+      console.log('✅ User signed out');
     } catch (error) {
       console.error('Sign out error:', error);
       throw error;
@@ -153,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
   };
 
-  console.log('🔧 AuthProvider rendering with value:', { user: user?.uid, isLoading });
+  console.log('🔧 AuthProvider rendering with value:', { user: user?.username, isLoading });
 
   return (
     <AuthContext.Provider value={value}>

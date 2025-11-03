@@ -1,56 +1,66 @@
-import React, { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  StyleSheet,
+    ActivityIndicator,
+    Alert,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "./config/firebaseconfig"; // Import auth from config
+import { useAuth } from "./contexts/AuthContext";
 
 export default function LoginScreen() {
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ username: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { signIn, user } = useAuth();
+
+  // Redirect to chat screen after successful login
+  useEffect(() => {
+    console.log('🔍 Login useEffect - user:', user);
+    if (user) {
+      console.log('✅ User detected, navigating to /front...');
+      setTimeout(() => {
+        router.push("/front" as any);
+      }, 100);
+    }
+  }, [user]);
 
   const handleLogin = async () => {
-    const { email, password } = form;
+    const { username, password } = form;
 
-    if (!email.trim() || !password.trim()) {
-      Alert.alert("Error", "Please enter email and password");
+    if (!username.trim() || !password.trim()) {
+      Alert.alert("Error", "Please enter username and password");
       return;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      Alert.alert("Invalid Email", "Please enter a valid email address.");
+    if (username.trim().length < 3) {
+      Alert.alert("Invalid Username", "Username must be at least 3 characters.");
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert("Weak Password", "Password must be at least 6 characters.");
+    if (password.length < 4) {
+      Alert.alert("Weak Password", "Password must be at least 4 characters.");
       return;
     }
 
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
-      Alert.alert("Success", "Logged in successfully!");
-      router.push("./otp");
+      setLoading(true);
+      console.log('🔐 Attempting login for:', username.trim());
+      await signIn(username.trim(), password);
+      console.log('✅ signIn completed successfully');
+      // Navigation will happen automatically via useEffect watching user state
     } catch (error) {
+      console.error('❌ Login error:', error);
       Alert.alert("Login Failed", error instanceof Error ? error.message : String(error));
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const handleMobileLogin = () => {
-    router.push("./loginpage");
-  };
-
-  const handleNewUser = () => {
-    router.push("/Account-setup");
   };
 
   return (
@@ -60,18 +70,18 @@ export default function LoginScreen() {
 
         <View style={styles.inputContainer}>
           <Ionicons
-            name="mail-outline"
+            name="person-outline"
             size={20}
             color="#555"
             style={styles.icon}
           />
           <TextInput
-            placeholder="Email"
-            keyboardType="email-address"
+            placeholder="Username"
             autoCapitalize="none"
             style={styles.input}
-            value={form.email}
-            onChangeText={(text) => setForm({ ...form, email: text })}
+            value={form.username}
+            onChangeText={(text) => setForm({ ...form, username: text })}
+            editable={!loading}
           />
         </View>
 
@@ -88,6 +98,7 @@ export default function LoginScreen() {
             style={styles.input}
             value={form.password}
             onChangeText={(text) => setForm({ ...form, password: text })}
+            editable={!loading}
           />
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
             <Ionicons
@@ -99,24 +110,21 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.btn} onPress={handleLogin}>
-          <Text style={styles.btnText}>Login</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.or}>or</Text>
-
-        <TouchableOpacity
-          style={styles.mobileBtn}
-          onPress={handleMobileLogin}
+        <TouchableOpacity 
+          style={[styles.btn, loading && styles.btnDisabled]} 
+          onPress={handleLogin}
+          disabled={loading}
         >
-          <Text style={styles.mobileBtnText}>
-            Sign in with Mobile Number
-          </Text>
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.btnText}>Login</Text>
+          )}
         </TouchableOpacity>
 
         <Text style={styles.footer}>
           New to LYNQ?{" "}
-          <Text style={styles.link} onPress={handleNewUser}>
+          <Text style={styles.link} onPress={() => router.push('/register' as any)}>
             Create Account
           </Text>
         </Text>
@@ -167,6 +175,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   btnText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  btnDisabled: { opacity: 0.6 },
   or: { marginVertical: 10, fontSize: 14, color: "rgba(255,255,255,0.9)" },
   mobileBtn: {
     width: "100%",

@@ -13,24 +13,6 @@ const io = new Server(server, {
     methods: ["GET", "POST"]
   }
 });
-    text, // Plain text for server logging
-    encryptedText, // Encrypted version for storage
-    senderId,
-    receiverId,
-    participants: [senderId, receiverId], // For Firebase querying
-    timestamp: new Date().toISOString(),
-    isEncrypted: isEncrypted || false,
-    // Add decryption result for debugging
-    ...(decryptedFromEncrypted && { backendDecrypted: decryptedFromEncrypted })
-  };
-
-  // Save to Firebase (with fallback to in-memory)
-  const savedMessageId = await saveMessage(newMessage);
-  newMessage.id = savedMessageId;
-  
-  console.log('🔥 =====================================================\n'); "POST"]
-  }
-});
 
 const PORT = 3004;
 
@@ -162,7 +144,7 @@ async function getUser(username) {
 function decryptMessage(encryptedText, senderId, receiverId) {
   try {
     // Match your app's key generation exactly: sort users + hash with SECRET_KEY
-    const SECRET_KEY = 'lynq-chat-secret-key-2024-secure'; // Remove the dash prefix
+    const SECRET_KEY = 'lynq-chat-secret-key-2024-secure';
     const combined = [senderId, receiverId].sort().join('-');
     const secretKey = CryptoJS.SHA256(combined + SECRET_KEY).toString();
     
@@ -191,6 +173,7 @@ app.get('/health', (req, res) => {
     status: 'OK', 
     messages: messages.length,
     users: Object.keys(users).length,
+    firebase: db ? 'Connected' : 'Disconnected',
     encryption: 'AES-256 Enabled',
     timestamp: new Date().toISOString() 
   });
@@ -313,7 +296,7 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 // Get messages endpoint
-app.get('/api/messages/test', (req, res) => {
+app.get('/api/messages/test', async (req, res) => {
   console.log(`\n📋 RETRIEVING MESSAGES: ${messages.length} total`);
   
   // Show encryption status of stored messages
@@ -386,14 +369,18 @@ app.post('/api/messages/test', async (req, res) => {
     encryptedText, // Encrypted version for storage
     senderId,
     receiverId,
+    participants: [senderId, receiverId], // For Firebase querying
     timestamp: new Date().toISOString(),
     isEncrypted: isEncrypted || false,
     // Add decryption result for debugging
     ...(decryptedFromEncrypted && { backendDecrypted: decryptedFromEncrypted })
   };
 
-  messages.push(newMessage);
-  console.log('� =====================================================\n');
+  // Save to Firebase (with fallback to in-memory)
+  const savedMessageId = await saveMessage(newMessage);
+  newMessage.id = savedMessageId;
+  
+  console.log('🔥 =====================================================\n');
 
   // Emit real-time update to connected clients (including encrypted data)
   io.emit("message", newMessage);
@@ -414,7 +401,12 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`� Encrypted chat server running on port ${PORT}`);
+  console.log(`🚀 Encrypted chat server running on port ${PORT}`);
   console.log(`🔐 AES-256-GCM encryption enabled`);
+  if (db) {
+    console.log(`🔥 Firebase Firestore: Connected`);
+  } else {
+    console.log(`💾 Storage: In-memory mode (Firebase unavailable)`);
+  }
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
 });

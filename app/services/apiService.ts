@@ -1,8 +1,5 @@
 // API service for backend communication
-import { auth } from '../config/firebaseconfig';
-
-// Cast auth to any to avoid TypeScript issues with mock implementation
-const firebaseAuth = auth as any;
+import { Storage } from '../utils/storage';
 
 // Read backend URL from environment (Expo/.env)
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3004';
@@ -32,11 +29,8 @@ export interface SendMessageResponse {
 class ApiService {
   private async getAuthToken(): Promise<string | null> {
     try {
-      const user = firebaseAuth?.currentUser;
-      if (user) {
-        return await user.getIdToken();
-      }
-      return null;
+      const token = await Storage.getItem('lynq-auth-token');
+      return token;
     } catch (error) {
       console.error('Error getting auth token:', error);
       return null;
@@ -64,7 +58,8 @@ class ApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
       return await response.json();

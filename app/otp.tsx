@@ -1,8 +1,8 @@
-import {  View, Text, StyleSheet, Image, TextInput, Keyboard, TouchableOpacity, Alert } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from "expo-router";
 import { useRoute } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Image, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 const OTP_LENGTH = 6;
 const Resend_Time = 30;
@@ -12,17 +12,10 @@ export default function VerifyOTP() {
   const route = useRoute();
   const { phone } =(route.params as { phone?: string }) || {};
 
-
-  // Function to mask phone number like +91 98*****210
-  const maskPhone = (number: string) => {
-    if (!number) return "";
-    if (number.length <= 6) return number; // fallback for very short numbers
-    return number.slice(0, 6) + "*****" + number.slice(-3);
-  };
-
   const [otp, setotp] = useState(Array(OTP_LENGTH).fill(""));
   const [focusedInput, setFocusedInput] = useState<number | null>(null);
   const [isResending, setIsResending] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const inputs = useRef<(TextInput | null)[]>([]);
   const [Timer, setTimer] = useState(Resend_Time);
 

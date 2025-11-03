@@ -1,10 +1,13 @@
-import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Text, View, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { useState } from "react";
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { auth } from "./config/firebaseconfig";
 
 export default function LoginScreen() {
   const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const formatPhone = (num: string) => {
@@ -22,14 +25,40 @@ export default function LoginScreen() {
 
   const isValidNumber = phone.replace(/\D/g, "").length === 10;
 
-  const handleNext = () => {
+  const handleNext = async () => {
     const rawDigits = phone.replace(/\D/g, "");
     const formattedPhone = `+91${rawDigits}`;
     if (rawDigits.length !== 10) {
       Alert.alert("Invalid number", "Enter a valid phone number.");
       return;
     }
-    router.push({ pathname: "/otp", params: { phone: formattedPhone } });
+
+    try {
+      setLoading(true);
+      
+      // Initialize reCAPTCHA verifier
+      if (!(window as any).recaptchaVerifier) {
+        (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'invisible',
+          callback: () => {
+            console.log('reCAPTCHA solved');
+          }
+        });
+      }
+
+      const appVerifier = (window as any).recaptchaVerifier;
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+      
+      // Store confirmation result for OTP verification
+      (window as any).confirmationResult = confirmationResult;
+      
+      setLoading(false);
+      router.push({ pathname: "/otp", params: { phone: formattedPhone } });
+    } catch (error: any) {
+      setLoading(false);
+      console.error('Error sending OTP:', error);
+      Alert.alert("Error", error.message || "Failed to send OTP. Please try again.");
+    }
   };
 
   return (
@@ -37,6 +66,7 @@ export default function LoginScreen() {
       colors={["#34e89e","#0f3443"]}
       style={styles.main}
     >
+      <div id="recaptcha-container"></div>
       <Text style={styles.for_text1}>Enter Your Mobile Number</Text>
       <Text style={styles.for_text2}>
         LYNQ will send an OTP to verify your Number
@@ -49,17 +79,22 @@ export default function LoginScreen() {
           keyboardType="number-pad"
           value={phone}
           onChangeText={handleChange}
+          editable={!loading}
         />
       </View>
       <TouchableOpacity
         style={[
           styles.for_text4,
-          { backgroundColor: isValidNumber ? "#06B6D4" : "#9CA3AF" },
+          { backgroundColor: isValidNumber && !loading ? "#06B6D4" : "#9CA3AF" },
         ]}
-        disabled={!isValidNumber}
+        disabled={!isValidNumber || loading}
         onPress={handleNext}
       >
-        <Text style={styles.for_text5}>Next</Text>
+        {loading ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <Text style={styles.for_text5}>Next</Text>
+        )}
       </TouchableOpacity>
     </LinearGradient>
   );
