@@ -2,7 +2,7 @@
 import { Storage } from '../utils/storage';
 
 // Read backend URL from environment (Expo/.env)
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3004';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://lynq-chat-app-production.up.railway.app';
 
 // Types for message data
 export interface Message {
