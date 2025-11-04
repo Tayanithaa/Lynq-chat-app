@@ -1,19 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useAuth } from './contexts/AuthContext';
+import { useOnlineUsers } from './hooks/useOnlineUsers';
 import { callingService } from './services/callingService';
 import { contactService, SyncedContact } from './services/contactService';
 
@@ -25,14 +26,40 @@ const ContactsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [showOnlyRegistered, setShowOnlyRegistered] = useState(false);
   const { user } = useAuth();
+  const username = user?.username;
+  const onlineUsers = useOnlineUsers(username);
 
   useEffect(() => {
     loadContacts();
   }, []);
 
+  const filterContacts = useCallback(() => {
+    let filtered = contacts;
+
+    if (showOnlyRegistered) {
+      filtered = filtered.filter(contact => contact.isRegistered);
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(contact =>
+        contact.name.toLowerCase().includes(query) ||
+        contact.phoneNumbers.some(phone => phone.includes(searchQuery)) ||
+        contact.emails.some(email => email.toLowerCase().includes(query))
+      );
+    }
+
+    // Mark registered contacts also as online if username matches presence list
+    const withPresence = filtered.map((c) => ({
+      ...c,
+      isOnline: c.isRegistered && onlineUsers.includes(c.id || c.name || '')
+    }));
+    setFilteredContacts(withPresence);
+  }, [contacts, searchQuery, showOnlyRegistered, onlineUsers]);
+
   useEffect(() => {
     filterContacts();
-  }, [contacts, searchQuery, showOnlyRegistered]);
+  }, [filterContacts]);
 
   const loadContacts = async () => {
     try {
@@ -63,24 +90,7 @@ const ContactsScreen = () => {
     }
   };
 
-  const filterContacts = () => {
-    let filtered = contacts;
-
-    if (showOnlyRegistered) {
-      filtered = filtered.filter(contact => contact.isRegistered);
-    }
-
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(contact =>
-        contact.name.toLowerCase().includes(query) ||
-        contact.phoneNumbers.some(phone => phone.includes(searchQuery)) ||
-        contact.emails.some(email => email.toLowerCase().includes(query))
-      );
-    }
-
-    setFilteredContacts(filtered);
-  };
+  
 
   const initiateVoiceCall = async (contact: SyncedContact) => {
     if (!user || !contact.isRegistered) {
@@ -135,7 +145,7 @@ const ContactsScreen = () => {
     });
   };
 
-  const renderContact = ({ item }: { item: SyncedContact }) => (
+  const renderContact = ({ item }: { item: SyncedContact & { isOnline?: boolean } }) => (
     <TouchableOpacity style={styles.contactItem} onPress={() => startChat(item)}>
       <View style={styles.contactInfo}>
         {item.avatar ? (
@@ -156,10 +166,10 @@ const ContactsScreen = () => {
           <View style={styles.statusContainer}>
             <View style={[
               styles.statusDot,
-              { backgroundColor: item.isRegistered ? '#4CAF50' : '#9E9E9E' }
+              { backgroundColor: item.isRegistered ? (item.isOnline ? '#00E676' : '#4CAF50') : '#9E9E9E' }
             ]} />
             <Text style={styles.statusText}>
-              {item.isRegistered ? 'On Lynq' : 'Not registered'}
+              {item.isRegistered ? (item.isOnline ? 'Online' : 'On Lynq') : 'Not registered'}
             </Text>
           </View>
         </View>

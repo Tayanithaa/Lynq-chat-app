@@ -27,7 +27,6 @@ export default function ChatScreen() {
     sendMessage,
     refreshMessages,
     checkHealth,
-    switchUser,
   } = useMessages(chatId as string);
 
   // Get user display name
@@ -39,16 +38,8 @@ export default function ChatScreen() {
       return 'You';
     }
     
-    // For named users, show proper names
-    if (userId.includes('alice')) return 'Alice';
-    if (userId.includes('bob')) return 'Bob';
-    if (userId.includes('charlie')) return 'Charlie';
-    if (userId.includes('person1')) return 'Person 1';
-    if (userId.includes('person2')) return 'Person 2';
-    if (userId.includes('friend')) return 'Friend';
-    
-    // Extract username from email format
-    const username = userId.split('@')[0] || 'User';
+    // Extract username from email format or use as-is
+    const username = userId.split('@')[0] || userId;
     return username.charAt(0).toUpperCase() + username.slice(1);
   };
 
@@ -147,9 +138,6 @@ export default function ChatScreen() {
           <Text style={styles.userInfo}>You are: {currentUser}</Text>
         </View>
         <View style={styles.headerButtons}>
-          <TouchableOpacity onPress={switchUser} style={styles.switchButton}>
-            <Text style={styles.switchText}>Switch User</Text>
-          </TouchableOpacity>
           <TouchableOpacity onPress={refreshMessages} style={styles.refreshButton}>
             <Text style={styles.refreshText}>⟳</Text>
           </TouchableOpacity>

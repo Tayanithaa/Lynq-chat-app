@@ -252,3 +252,39 @@ If you have any questions or need help, please:
 **Happy Chatting with LYNQ! 🎉**
 
 
+## 📦 External code import (subtree)
+
+We vendored an external React Native chat example into this repository using Git Subtree, so we can reference and selectively integrate parts without disrupting our app structure.
+
+- Source repo: https://github.com/Ctere1/react-native-chat (branch: master)
+- Location in this repo: `external/react-native-chat`
+- Import method: `git subtree add --prefix=external/react-native-chat otherrepo master --squash`
+
+Notes
+- This is a one-way import snapshot. It doesn’t affect our app code until we copy or wire pieces in.
+- The imported project keeps its own config (e.g., `app.config.js`, `babel.config.js`) within `external/react-native-chat/`. Do not run those at the top level.
+
+Update the subtree in the future
+1) Ensure the remote exists and is up to date:
+
+```powershell
+git remote -v
+git fetch otherrepo --prune
+```
+
+2) Pull latest changes from the external repo into the subtree:
+
+```powershell
+git subtree pull --prefix=external/react-native-chat otherrepo master --squash
+```
+
+Remove the subtree (if ever needed)
+```powershell
+git rm -r external/react-native-chat
+git commit -m "Remove subtree external/react-native-chat"
+```
+
+Integration status
+- Imported for reference and staged integration. Next steps are to selectively copy or adapt components/services from `external/react-native-chat` into our app.
+
+

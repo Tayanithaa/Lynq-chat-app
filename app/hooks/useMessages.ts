@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiService, Message } from '../services/apiService';
 import MessageEncryption from '../utils/encryption';
 import { getSocketConfig, getSocketUrl } from '../utils/socketConfig';
-import { Storage } from '../utils/storage';
+// Storage import removed: no default personas in real-user mode
 
 export const useMessages = (otherUserId?: string) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -19,31 +19,9 @@ export const useMessages = (otherUserId?: string) => {
   
   // Create different user IDs for testing by checking URL or creating unique session
   const getCurrentUserId = useCallback(async (): Promise<string> => {
-    try {
-      // Check if there's a user parameter in URL (web only)
-      const userParam = Storage.getURLParam('user');
-      if (userParam) {
-        return `${userParam}@example.com`;
-      }
-      
-      // Create different users based on storage or random assignment
-      let userId = await Storage.getItem('lynq-user-id');
-      if (!userId) {
-        // Generate user IDs for simple 1-on-1 - alternating between Person 1 and Person 2
-        const random = Math.random();
-        if (random < 0.5) {
-          userId = 'person1@example.com';
-        } else {
-          userId = 'person2@example.com';
-        }
-        await Storage.setItem('lynq-user-id', userId);
-      }
-      console.log('🧑 Current user ID:', userId);
-      return userId;
-    } catch (error) {
-      console.error('Error getting user ID:', error);
-      return user?.email || user?.uid || 'web-user@example.com';
-    }
+    // Require authenticated user; no default personas
+    if (user?.username) return user.username;
+    throw new Error('Not authenticated');
   }, [user]);
 
   // Initialize current user
@@ -57,9 +35,12 @@ export const useMessages = (otherUserId?: string) => {
 
   // Generate encryption key for this chat
   const getEncryptionKey = useCallback(() => {
-    const users = ['person1@example.com', 'person2@example.com'];
-    return MessageEncryption.generateUserKey(users[0], users[1]);
-  }, []);
+    // Derive deterministic key from the two participants
+    const a = currentUser || '';
+    const b = (otherUserId as string) || '';
+    if (!a || !b) return MessageEncryption.generateUserKey('default', 'fallback');
+    return MessageEncryption.generateUserKey(a, b);
+  }, [currentUser, otherUserId]);
 
   // Test encryption on first load
   useEffect(() => {
@@ -73,15 +54,14 @@ export const useMessages = (otherUserId?: string) => {
     setError(null);
     
     try {
-      // For 1-on-1 chat, get all messages and filter to show conversation
-      // between person1@example.com and person2@example.com
+      // Get all messages and filter to just this conversation (currentUser <-> otherUserId)
       const allMessages = await apiService.getMessages();
-      
-      // Filter to show messages between Person 1 and Person 2 only
-      const conversationMessages = allMessages.filter(msg => 
-        (msg.senderId === 'person1@example.com' || msg.senderId === 'person2@example.com') &&
-        (msg.receiverId === 'person1@example.com' || msg.receiverId === 'person2@example.com')
-      );
+      const conversationMessages = otherUserId && currentUser
+        ? allMessages.filter(msg =>
+            (msg.senderId === currentUser && msg.receiverId === otherUserId) ||
+            (msg.senderId === otherUserId && msg.receiverId === currentUser)
+          )
+        : allMessages;
 
       // Decrypt messages if they are encrypted
       const encryptionKey = getEncryptionKey();
@@ -100,26 +80,20 @@ export const useMessages = (otherUserId?: string) => {
     } finally {
       setLoading(false);
     }
-  }, [getEncryptionKey]); // Added dependency for encryption key
+  }, [getEncryptionKey, currentUser, otherUserId]);
 
   // Send a message
   const sendMessage = useCallback(async (text: string, receiverId?: string) => {
     if (!currentUser) {
-      console.log('⚠️ No user available, using fallback');
-      setError('Please refresh the page to load user authentication');
+      setError('Not authenticated');
       return false;
     }
 
-    // For simple 1-on-1 chat: Person 1 sends to Person 2, Person 2 sends to Person 1
-    let receiver = receiverId;
+    // Resolve receiver: use provided otherUserId or argument
+    const receiver = receiverId || (otherUserId as string);
     if (!receiver) {
-      if (currentUser === 'person1@example.com') {
-        receiver = 'person2@example.com';
-      } else if (currentUser === 'person2@example.com') {
-        receiver = 'person1@example.com';
-      } else {
-        receiver = 'person2@example.com'; // Default fallback
-      }
+      setError('No receiver selected');
+      return false;
     }
 
     setError(null);
@@ -129,7 +103,7 @@ export const useMessages = (otherUserId?: string) => {
       const encryptionKey = getEncryptionKey();
       const encryptedText = MessageEncryption.encrypt(text, encryptionKey);
       
-      console.log(`📤 Sending encrypted message from ${currentUser} to ${receiver}: "${text}"`);
+  console.log(`📤 Sending encrypted message from ${currentUser} to ${receiver}: "${text}"`);
       
       // Send both plain text (for fallback) and encrypted text
       const newMessage = await apiService.sendMessage(currentUser, receiver, text, encryptedText, true);
@@ -145,7 +119,7 @@ export const useMessages = (otherUserId?: string) => {
       setError(err instanceof Error ? err.message : 'Failed to send encrypted message');
       return false;
     }
-  }, [currentUser, getEncryptionKey]); // Added getEncryptionKey dependency
+  }, [currentUser, getEncryptionKey, otherUserId]);
 
   // Check backend health
   const checkHealth = useCallback(async () => {
@@ -181,14 +155,28 @@ export const useMessages = (otherUserId?: string) => {
       console.log(`🔌 Setting up socket connection to: ${socketUrl}`);
       
       // Enhanced socket configuration for mobile and web
-      socketRef.current = io(socketUrl, socketConfig);
+  socketRef.current = io(socketUrl, socketConfig);
 
       socketRef.current.on('connect', () => {
         console.log('🔌 Socket connected:', socketRef.current?.id);
+        // Identify this user for presence tracking
+        if (currentUser) {
+          socketRef.current?.emit('join', currentUser);
+        }
       });
 
-      socketRef.current.on('message', (msg: Message) => {
-        console.log('📨 Received encrypted message via Socket.io:', msg);
+      const handleIncoming = (msg: Message) => {
+        console.log('📨 Received message via Socket.io:', msg);
+        
+        // IMPORTANT: Only process messages for this conversation
+        const isForThisChat = 
+          (msg.senderId === currentUser && msg.receiverId === otherUserId) ||
+          (msg.senderId === otherUserId && msg.receiverId === currentUser);
+        
+        if (!isForThisChat) {
+          console.log('⏭️ Message not for this conversation, skipping');
+          return;
+        }
         
         // Decrypt message if it's encrypted
         let decryptedMessage = { ...msg };
@@ -206,9 +194,17 @@ export const useMessages = (otherUserId?: string) => {
             console.log('⚠️ Message already exists, skipping:', decryptedMessage.id);
             return prev;
           }
-          console.log('✅ Adding new decrypted message to state:', decryptedMessage.id);
+          console.log('✅ Adding new message to state:', decryptedMessage.id);
           return [...prev, decryptedMessage];
         });
+      };
+
+      // Support multiple server event names
+      socketRef.current.on('message', handleIncoming);
+      socketRef.current.on('new-message', handleIncoming);
+      socketRef.current.on('receive-message', (payload: any) => {
+        // Normalize payload shape if coming from room-based event
+        if (payload?.message) handleIncoming(payload.message);
       });
 
       socketRef.current.on('disconnect', () => {
@@ -226,31 +222,12 @@ export const useMessages = (otherUserId?: string) => {
       socketRef.current?.disconnect();
       socketRef.current = null;
     };
-  }, [getEncryptionKey]); // Added getEncryptionKey dependency
+  }, [getEncryptionKey, currentUser, otherUserId]);
 
   // Function to switch between users for testing
+  // Deprecated: no default personas switching in real-user mode
   const switchUser = useCallback(async () => {
-    try {
-      const currentUserId = await Storage.getItem('lynq-user-id');
-      let newUserId;
-      
-      if (currentUserId === 'person1@example.com') {
-        newUserId = 'person2@example.com';
-      } else {
-        newUserId = 'person1@example.com';
-      }
-      
-      await Storage.setItem('lynq-user-id', newUserId);
-      console.log(`🔄 Switched user from ${currentUserId} to ${newUserId}`);
-      
-      // Update the current user state
-      setCurrentUser(newUserId);
-      
-      // Reload the page only on web platforms
-      Storage.reloadPage();
-    } catch (error) {
-      console.error('Error switching user:', error);
-    }
+    console.warn('Switch user is disabled. Please sign out and sign in with a different account.');
   }, []);
 
   return {

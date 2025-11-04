@@ -13,24 +13,7 @@ const io = new Server(server, {
     methods: ["GET", "POST"]
   }
 });
-    text, // Plain text for server logging
-    encryptedText, // Encrypted version for storage
-    senderId,
-    receiverId,
-    participants: [senderId, receiverId], // For Firebase querying
-    timestamp: new Date().toISOString(),
-    isEncrypted: isEncrypted || false,
-    // Add decryption result for debugging
-    ...(decryptedFromEncrypted && { backendDecrypted: decryptedFromEncrypted })
-  };
 
-  // Save to Firebase (with fallback to in-memory)
-  const savedMessageId = await saveMessage(newMessage);
-  newMessage.id = savedMessageId;
-  
-  console.log('🔥 =====================================================\n'); "POST"]
-  }
-});
 
 const PORT = 3004;
 
@@ -60,6 +43,8 @@ app.use(express.static('.'));
 let messages = [];
 let users = {}; // Store user sessions and data
 let userSessions = {}; // Track active sessions
+// Online users presence map: username -> socketId
+const onlineUsers = new Map();
 
 // Helper function to generate session token
 function generateSessionToken() {
@@ -312,6 +297,16 @@ app.post('/api/auth/logout', (req, res) => {
   res.json({ success: true });
 });
 
+// Online users endpoint (simple presence)
+app.get('/api/users/online', (req, res) => {
+  try {
+    const list = Array.from(onlineUsers.keys());
+    res.json({ success: true, data: { users: list } });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to get online users' });
+  }
+});
+
 // Get messages endpoint
 app.get('/api/messages/test', (req, res) => {
   console.log(`\n📋 RETRIEVING MESSAGES: ${messages.length} total`);
@@ -395,8 +390,14 @@ app.post('/api/messages/test', async (req, res) => {
   messages.push(newMessage);
   console.log('� =====================================================\n');
 
-  // Emit real-time update to connected clients (including encrypted data)
+  // Emit real-time update to connected clients
+  // 1) Backward-compatible global event for existing listeners
   io.emit("message", newMessage);
+  // 2) Preferred targeted events: notify sender and receiver rooms if connected
+  const senderSocketId = onlineUsers.get(senderId);
+  const receiverSocketId = onlineUsers.get(receiverId);
+  if (senderSocketId) io.to(senderSocketId).emit('new-message', newMessage);
+  if (receiverSocketId) io.to(receiverSocketId).emit('new-message', newMessage);
 
   res.json({
     success: true,
@@ -408,8 +409,37 @@ app.post('/api/messages/test', async (req, res) => {
 io.on('connection', (socket) => {
   console.log(`👤 User connected: ${socket.id}`);
 
+  // Client should emit 'join' with their app username after connecting
+  socket.on('join', (username) => {
+    if (!username || typeof username !== 'string') return;
+    // Map username -> socket.id
+    onlineUsers.set(username, socket.id);
+    // Attach for disconnection cleanup
+    socket.data = socket.data || {};
+    socket.data.username = username;
+    console.log(`✅ ${username} is online (${socket.id})`);
+    // Broadcast updated online user list
+    io.emit('users-online', Array.from(onlineUsers.keys()));
+    io.emit('user-joined', { username });
+  });
+
   socket.on('disconnect', () => {
-    console.log(`👤 User disconnected: ${socket.id}`);
+    // Remove by socket id
+    let removedUser = null;
+    for (const [username, sid] of onlineUsers.entries()) {
+      if (sid === socket.id) {
+        onlineUsers.delete(username);
+        removedUser = username;
+        break;
+      }
+    }
+    if (removedUser) {
+      console.log(`� ${removedUser} went offline (${socket.id})`);
+      io.emit('users-online', Array.from(onlineUsers.keys()));
+      io.emit('user-left', { username: removedUser });
+    } else {
+      console.log(`�👤 User disconnected: ${socket.id}`);
+    }
   });
 });
 

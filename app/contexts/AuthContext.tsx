@@ -74,7 +74,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      console.log('🔐 AuthContext signIn - calling API...');
+      console.log('🔐 AuthContext signIn - calling API:', API_BASE_URL);
+      console.log('📡 Using API URL:', `${API_BASE_URL}/api/auth/login`);
+      
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -82,19 +84,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       const data = await response.json();
-      console.log('📦 Login response:', { ok: response.ok, data });
+      console.log('📦 Login response:', { ok: response.ok, status: response.status, data });
 
       if (!response.ok) {
         throw new Error(data.error || 'Login failed');
       }
 
-      await Storage.setItem('lynq-auth-token', data.data.token);
+      // Check if we got the expected data structure
+      if (!data.data || !data.data.user) {
+        throw new Error('Invalid response from server');
+      }
+
+      await Storage.setItem('lynq-auth-token', data.data.user.sessionToken);
       console.log('💾 Token saved, setting user:', data.data.user);
-      setUser(data.data.user);
+      setUser({
+        uid: data.data.user.username,
+        username: data.data.user.username,
+        displayName: data.data.user.username
+      });
       
       console.log('✅ User logged in:', data.data.user.username);
     } catch (error: any) {
       console.error('❌ Sign in error:', error);
+      
+      // Provide helpful error messages for common issues
+      if (error.message.includes('Network request failed') || error.message.includes('Failed to fetch')) {
+        throw new Error('Cannot connect to server. Make sure:\n1. Server is running (node simple-server.js)\n2. You\'re on the same WiFi network\n3. Check .env file has correct IP address');
+      }
+      
       throw new Error(error.message || 'Login failed');
     } finally {
       setIsLoading(false);

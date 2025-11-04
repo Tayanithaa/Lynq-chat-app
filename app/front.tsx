@@ -3,6 +3,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import CallsScreen from "./callsscreen";
 import ChatsScreen from "./chatscreen";
+import OnlineUsersScreen from "./online";
 import SocketInitializer from "./components/SocketInitializer";
 import { useAuth } from "./contexts/AuthContext";
 import UpdatesScreen from "./updatescreen";
@@ -35,6 +36,7 @@ export default function FrontScreen() {
           tabBarInactiveTintColor: "#f5b5b5",
         }}
       >
+        <Tab.Screen name="Online" component={OnlineUsersScreen} />
         <Tab.Screen name="Chats" component={ChatsScreen} />
         <Tab.Screen name="Updates" component={UpdatesScreen} />
         <Tab.Screen name="Calls" component={CallsScreen} />
