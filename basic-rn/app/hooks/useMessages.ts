@@ -90,7 +90,7 @@ export const useMessages = (otherUserId?: string) => {
   // Setup socket connection for real-time updates
   useEffect(() => {
     const setupSocket = async () => {
-      const apiUrl = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3004';
+      const apiUrl = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://lynq-chat-app-production.up.railway.app';
       socketRef.current = io(apiUrl, { transports: ['websocket', 'polling'] });
 
       socketRef.current.on('connect', () => {

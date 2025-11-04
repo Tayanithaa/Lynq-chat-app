@@ -1,5 +1,6 @@
 {
   "expo": {
+    "owner": "mirdula",
     "name": "basic-rn",
     "slug": "basic-rn",
     "version": "1.0.0",
