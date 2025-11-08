@@ -18,14 +18,37 @@ const io = new Server(server, {
 const PORT = 3004;
 
 // Firebase Admin SDK initialization
+const fs = require('fs');
+const path = require('path');
 let db;
 try {
-  // Initialize Firebase Admin with minimal config for Firestore
-  if (!admin.apps.length) {
-    admin.initializeApp({
-      projectId: 'otpauth-74252', // Your Firebase project ID
-    });
+  // Prefer an explicit service account file if present in the project
+  const candidatePaths = [
+    path.join(__dirname, 'serviceAccountKey.json'),
+    path.join(__dirname, 'server', 'serviceAccountKey.json')
+  ];
+  const found = candidatePaths.find(p => fs.existsSync(p));
+
+  if (found) {
+    const serviceAccount = require(found);
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        projectId: serviceAccount.project_id || 'otpauth-74252'
+      });
+    }
+    console.log(`🔥 Firebase Admin initialized using service account: ${found}`);
+  } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    // If the environment variable is set, let the client library pick it up.
+    if (!admin.apps.length) {
+      admin.initializeApp({ projectId: 'otpauth-74252' });
+    }
+    console.log('🔥 Firebase Admin initialized using GOOGLE_APPLICATION_CREDENTIALS');
+  } else {
+    // No credentials available — fall back to in-memory mode
+    throw new Error('No Firebase credentials found (service account file or GOOGLE_APPLICATION_CREDENTIALS)');
   }
+
   db = admin.firestore();
   console.log('🔥 Firebase Admin initialized successfully');
 } catch (error) {
@@ -148,7 +171,10 @@ function decryptMessage(encryptedText, senderId, receiverId) {
   try {
     // Match your app's key generation exactly: sort users + hash with SECRET_KEY
     const SECRET_KEY = 'lynq-chat-secret-key-2024-secure'; // Remove the dash prefix
-    const combined = [senderId, receiverId].sort().join('-');
+  // Normalize the user ids to avoid mismatches from casing/whitespace.
+  const a = (senderId || '').toString().trim().toLowerCase();
+  const b = (receiverId || '').toString().trim().toLowerCase();
+  const combined = [a, b].sort().join('-');
     const secretKey = CryptoJS.SHA256(combined + SECRET_KEY).toString();
     
     console.log(`🔑 Users: [${senderId}, ${receiverId}]`);
@@ -202,26 +228,9 @@ app.post('/api/auth/login', async (req, res) => {
     // Create new user (auto-registration for demo)
     userData = {
       username,
-      password: CryptoJS.SHA256(password).toString(), // Hash password
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString()
-    };
-    await saveUser(userData);
-    console.log(`✅ NEW USER CREATED: ${username}`);
-  } else {
-    // Verify existing user
-    const hashedPassword = CryptoJS.SHA256(password).toString();
-    if (existingUser.password !== hashedPassword) {
-      console.log(`❌ INVALID PASSWORD for: ${username}`);
-      return res.status(401).json({ 
-        success: false,
-        error: "Invalid credentials" 
-      });
-    }
-    
-    userData = {
-      ...existingUser,
-      lastLogin: new Date().toISOString()
+      // Minimal user metadata for demo
+      lastLogin: new Date().toISOString(),
+      displayName: username
     };
     await saveUser(userData);
     console.log(`✅ USER LOGGED IN: ${username}`);
@@ -238,6 +247,7 @@ app.post('/api/auth/login', async (req, res) => {
   const userMessages = await getMessagesForUser(username);
 
   console.log(`📨 FOUND ${userMessages.length} messages for user: ${username}`);
+  const responseUser = userData || existingUser || { username, lastLogin: new Date().toISOString() };
 
   res.json({
     success: true,
@@ -245,7 +255,7 @@ app.post('/api/auth/login', async (req, res) => {
       user: {
         username,
         sessionToken,
-        lastLogin: userData.lastLogin
+        lastLogin: responseUser.lastLogin
       },
       messageHistory: userMessages
     }
@@ -338,6 +348,36 @@ app.get('/api/messages/test', (req, res) => {
   });
 });
 
+// Backward-compatible authenticated endpoints (mirror test endpoints)
+// Some clients call /api/messages and /api/messages (POST). Provide the same
+// behavior so older/newer clients both work during development.
+app.get('/api/messages', (req, res) => {
+  console.log('\n📋 RETRIEVING MESSAGES (auth endpoint)');
+  try {
+    // Reuse the same logic as the test endpoint
+    messages.forEach((msg, index) => {
+      console.log(`\n📨 Message ${index + 1}:`);
+      console.log(`   ID: ${msg.id}`);
+      console.log(`   From: ${msg.senderId} → To: ${msg.receiverId}`);
+      console.log(`   Encrypted: ${msg.isEncrypted ? 'YES' : 'NO'}`);
+
+      if (msg.isEncrypted && msg.encryptedText) {
+        console.log(`   Original: "${msg.text}"`);
+        console.log(`   Encrypted: "${msg.encryptedText.substring(0, 50)}..."`);
+        const decrypted = decryptMessage(msg.encryptedText, msg.senderId, msg.receiverId);
+        console.log(`   Backend Decrypted: "${decrypted}"`);
+        console.log(`   Match: ${msg.text === decrypted ? '✅' : '❌'}`);
+      } else {
+        console.log(`   Text: "${msg.text}"`);
+      }
+    });
+
+    res.json({ success: true, messages, count: messages.length });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to retrieve messages' });
+  }
+});
+
 // Send message endpoint
 app.post('/api/messages/test', async (req, res) => {
   const { text, senderId, receiverId, encryptedText, isEncrypted } = req.body;
@@ -394,6 +434,71 @@ app.post('/api/messages/test', async (req, res) => {
   // 1) Backward-compatible global event for existing listeners
   io.emit("message", newMessage);
   // 2) Preferred targeted events: notify sender and receiver rooms if connected
+  const senderSocketId = onlineUsers.get(senderId);
+  const receiverSocketId = onlineUsers.get(receiverId);
+  if (senderSocketId) io.to(senderSocketId).emit('new-message', newMessage);
+  if (receiverSocketId) io.to(receiverSocketId).emit('new-message', newMessage);
+
+  res.json({
+    success: true,
+    data: newMessage,
+  });
+});
+
+// Backward-compatible POST endpoint for sending messages
+app.post('/api/messages', async (req, res) => {
+  const { text, senderId, receiverId, encryptedText, isEncrypted } = req.body;
+
+  if (!text || !senderId || !receiverId) {
+    return res.status(400).json({ 
+      success: false,
+      error: "Missing required fields: text, senderId, receiverId" 
+    });
+  }
+
+  console.log('\n🔥 ==================== NEW MESSAGE (auth endpoint) ====================');
+  console.log(`📨 Message ID: ${Date.now()}`);
+  console.log(`👤 From: ${senderId}`);
+  console.log(`👤 To: ${receiverId}`);
+  console.log(`🔐 Is Encrypted: ${isEncrypted ? 'YES' : 'NO'}`);
+  
+  let decryptedFromEncrypted = null;
+  
+  if (isEncrypted && encryptedText) {
+    console.log('\n📝 ORIGINAL PLAIN TEXT:');
+    console.log(`"${text}"`);
+    
+    console.log('\n🔒 ENCRYPTED VERSION:');
+    console.log(`"${encryptedText}"`);
+    
+    console.log('\n🔓 BACKEND DECRYPTION ATTEMPT:');
+    decryptedFromEncrypted = decryptMessage(encryptedText, senderId, receiverId);
+    console.log(`Decrypted Result: "${decryptedFromEncrypted}"`);
+    
+    console.log('\n✅ VERIFICATION:');
+    console.log(`Original matches decrypted: ${text === decryptedFromEncrypted ? '✅ YES' : '❌ NO'}`);
+  } else {
+    console.log('\n📝 PLAIN TEXT MESSAGE:');
+    console.log(`"${text}"`);
+  }
+
+  const newMessage = {
+    id: Date.now().toString(),
+    text, // Plain text for server logging
+    encryptedText, // Encrypted version for storage
+    senderId,
+    receiverId,
+    timestamp: new Date().toISOString(),
+    isEncrypted: isEncrypted || false,
+    // Add decryption result for debugging
+    ...(decryptedFromEncrypted && { backendDecrypted: decryptedFromEncrypted })
+  };
+
+  messages.push(newMessage);
+  console.log('� =====================================================\n');
+
+  // Emit real-time update to connected clients
+  io.emit("message", newMessage);
   const senderSocketId = onlineUsers.get(senderId);
   const receiverSocketId = onlineUsers.get(receiverId);
   if (senderSocketId) io.to(senderSocketId).emit('new-message', newMessage);

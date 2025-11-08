@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "680899165938",
+    "project_id": "otpauth-74252",
+    "storage_bucket": "otpauth-74252.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:680899165938:android:755298f1083a1f1fff5a6b",
+        "android_client_info": {
+          "package_name": "com.jaisurya.s.basicrn"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "680899165938-7t7mhhgc8pfmpvmhehqc4jl9fa0et72e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.jaisurya.s.basicrn",
+            "certificate_hash": "dc0cbc642c1921a96c81a20579cbcc36f34a4cde"
+          }
+        },
+        {
+          "client_id": "680899165938-o5jn48p525lv0qo8le1fnhvufjnr4k1b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.jaisurya.s.basicrn",
+            "certificate_hash": "f721efee379a6a906ba230656b4ae3bb770395d2"
+          }
+        },
+        {
+          "client_id": "680899165938-lkp7s74i1cln4uh0cjbtoklhoprk9r27.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDFGEh6eebaku5fOFL0og106ddC-Fr0x14"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "680899165938-lkp7s74i1cln4uh0cjbtoklhoprk9r27.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

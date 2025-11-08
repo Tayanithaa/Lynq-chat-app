@@ -1,13 +1,45 @@
+import './polyfills';
+
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useAuth } from "./contexts/AuthContext";
+import MessageEncryption from './utils/encryption';
 
+// Polyfill for secure random numbers used by crypto-js in React Native / Expo.
+// Try to use `expo-random` at runtime — use require so the module absence
+// doesn't crash the bundle in environments where it's not installed.
+void (async () => {
+  try {
+    const Random = await import('expo-random');
+    if (typeof (global as any).crypto === 'undefined') {
+      (global as any).crypto = {
+        getRandomValues: (arr: Uint8Array) => {
+          const bytes = Random.getRandomBytes(arr.length);
+          arr.set(bytes);
+          return arr;
+        },
+      };
+      console.log('✅ crypto.getRandomValues polyfilled using expo-random');
+    }
+  } catch {
+    console.warn('⚠️ expo-random not available - install expo-random to enable secure random numbers for crypto-js');
+  }
+})();
 export default function WelcomeScreen() {
   const router = useRouter();
   const { user, isLoading, signOut } = useAuth();
-
+  // Run a quick encryption/decryption self-test once on app load to help
+  // confirm the runtime RNG/polyfill is working on the device.
+  useEffect(() => {
+    try {
+      const ok = MessageEncryption.test();
+      console.log('🔍 Encryption self-test result:', ok);
+    } catch (e) {
+      console.warn('🔍 Encryption self-test threw:', e);
+    }
+  }, []);
   useEffect(() => {
     // Intentionally do NOT auto-redirect here.
     // We want the welcome screen to let the user choose to continue

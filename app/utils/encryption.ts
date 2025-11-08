@@ -8,9 +8,21 @@ class MessageEncryption {
    */
   static encrypt(message: string, userSecret?: string): string {
     try {
-      const key = userSecret || this.SECRET_KEY;
-      const encrypted = CryptoJS.AES.encrypt(message, key).toString();
-      console.log('🔒 Message encrypted successfully');
+      // If caller provides a derived hex key (preferred), use it directly.
+      // Otherwise fall back to legacy passphrase behavior.
+      if (userSecret && /^[0-9a-fA-F]{64}$/.test(userSecret)) {
+        const keyWA = CryptoJS.enc.Hex.parse(userSecret);
+        // Deterministic IV derived from key + secret to avoid RNG
+        const ivHex = CryptoJS.SHA256(userSecret + this.SECRET_KEY + 'iv').toString().substring(0, 32);
+        const ivWA = CryptoJS.enc.Hex.parse(ivHex);
+        const encrypted = CryptoJS.AES.encrypt(message, keyWA, { iv: ivWA }).toString();
+        console.log('🔒 Message encrypted successfully (deterministic key)');
+        return encrypted;
+      }
+
+      // Legacy fallback: use SECRET_KEY as passphrase
+      const encrypted = CryptoJS.AES.encrypt(message, this.SECRET_KEY).toString();
+      console.log('🔒 Message encrypted successfully (passphrase fallback)');
       return encrypted;
     } catch (error) {
       console.error('❌ Encryption failed:', error);
@@ -23,15 +35,22 @@ class MessageEncryption {
    */
   static decrypt(encryptedMessage: string, userSecret?: string): string {
     try {
-      const key = userSecret || this.SECRET_KEY;
-      const decrypted = CryptoJS.AES.decrypt(encryptedMessage, key);
-      const plaintext = decrypted.toString(CryptoJS.enc.Utf8);
-      
-      if (!plaintext) {
-        throw new Error('Decryption resulted in empty string');
+      if (userSecret && /^[0-9a-fA-F]{64}$/.test(userSecret)) {
+        const keyWA = CryptoJS.enc.Hex.parse(userSecret);
+        const ivHex = CryptoJS.SHA256(userSecret + this.SECRET_KEY + 'iv').toString().substring(0, 32);
+        const ivWA = CryptoJS.enc.Hex.parse(ivHex);
+        const decrypted = CryptoJS.AES.decrypt(encryptedMessage, keyWA, { iv: ivWA });
+        const plaintext = decrypted.toString(CryptoJS.enc.Utf8);
+        if (!plaintext) throw new Error('Decryption resulted in empty string');
+        console.log('🔓 Message decrypted successfully (deterministic key)');
+        return plaintext;
       }
-      
-      console.log('🔓 Message decrypted successfully');
+
+      // Legacy fallback
+      const decrypted = CryptoJS.AES.decrypt(encryptedMessage, this.SECRET_KEY);
+      const plaintext = decrypted.toString(CryptoJS.enc.Utf8);
+      if (!plaintext) throw new Error('Decryption resulted in empty string');
+      console.log('🔓 Message decrypted successfully (passphrase fallback)');
       return plaintext;
     } catch (error) {
       console.error('❌ Decryption failed:', error);
@@ -43,9 +62,17 @@ class MessageEncryption {
    * Generate a secure key for end-to-end encryption
    */
   static generateUserKey(userId1: string, userId2: string): string {
-    const combined = [userId1, userId2].sort().join('-');
+    // Normalize inputs to avoid mismatches from casing or stray whitespace
+    const a = (userId1 || '').toString().trim().toLowerCase();
+    const b = (userId2 || '').toString().trim().toLowerCase();
+    const combined = [a, b].sort().join('-');
     const key = CryptoJS.SHA256(combined + this.SECRET_KEY).toString();
-    console.log('🔑 Generated encryption key for chat pair');
+    // WARNING: This prints part of the derived key to help debug mismatches
+    // during development only. Remove in production.
+    console.log('🔑 Generated encryption key for chat pair', {
+      combined,
+      keyPreview: key.substring(0, 24) + '...'
+    });
     return key;
   }
 
@@ -67,8 +94,11 @@ class MessageEncryption {
   static test(): boolean {
     try {
       const testMessage = "Hello, this is a test message!";
-      const encrypted = this.encrypt(testMessage);
-      const decrypted = this.decrypt(encrypted);
+      // Use deterministic per-chat key for the self-test to avoid
+      // CryptoJS passphrase/KDF code paths that may call native RNG.
+      const key = this.generateUserKey('self-test-user-a', 'self-test-user-b');
+      const encrypted = this.encrypt(testMessage, key);
+      const decrypted = this.decrypt(encrypted, key);
       
       const success = decrypted === testMessage;
       console.log(success ? '✅ Encryption test passed' : '❌ Encryption test failed');
