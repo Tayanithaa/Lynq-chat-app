@@ -15,7 +15,7 @@ const io = new Server(server, {
 });
 
 
-const PORT = 3004;
+const PORT = process.env.PORT || 3004;
 
 // Firebase Admin SDK initialization
 const fs = require('fs');

@@ -16,11 +16,11 @@ export const getSocketConfig = () => {
 
 export const getSocketUrl = () => {
   if (Platform.OS === 'web') {
-    return process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3004';
+    return process.env.EXPO_PUBLIC_API_BASE_URL || 'https://lynq-chat-app-production.up.railway.app';
   }
   
-  // For mobile devices, use the computer's IP address
-  return process.env.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.1.100:3004';
+  // For mobile devices, prefer the bundler/LAN IP in dev, otherwise use deployed URL
+  return process.env.EXPO_PUBLIC_API_BASE_URL || 'https://lynq-chat-app-production.up.railway.app';
 };
 
 export class SocketMessageHandler {

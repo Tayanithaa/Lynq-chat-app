@@ -181,10 +181,10 @@ class ContactSyncService {
       console.log(`🔍 Checking ${uniquePhoneNumbers.length} phone numbers against Lynq database...`);
 
       try {
-        // Call backend API to check registered users
-        const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3004';
+  // Call backend API to check registered users
+  const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://lynq-chat-app-production.up.railway.app';
         
-        const response = await fetch(`${API_BASE_URL}/api/contacts/check`, {
+  const response = await fetch(`${API_BASE_URL}/api/contacts/check`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

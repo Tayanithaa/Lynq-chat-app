@@ -1,7 +1,8 @@
 {
   "expo": {
+    "owner": "mirdula",
     "name": "basic-rn",
-    "slug": "basic-rn",
+    "slug": "lynq-chat-app-mir",
     "version": "1.0.0",
     "sdkVersion": "54.0.0",
     "orientation": "portrait",
@@ -44,7 +45,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "05552ff8-bf19-4aa2-9de0-8433e6dddcee"
+        "projectId": "36702502-e313-4aea-b4c4-d0a23c507f9d"
       }
     }
   }

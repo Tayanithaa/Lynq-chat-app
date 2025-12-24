@@ -15,25 +15,22 @@ export const getSocketUrl = (): string => {
     return envUrl;
   }
   
-  // Default URLs based on platform
+  // Default to environment-provided URL (set by EAS) or the deployed Railway URL
   if (Platform.OS === 'web') {
-    return 'http://localhost:3004';
+    return process.env.EXPO_PUBLIC_SOCKET_URL || 'https://lynq-chat-app-production.up.railway.app';
   }
-  
-  // For mobile platforms
+
+  // For mobile platforms, prefer the bundled env or the deployed backend
   if (isDev && (Platform.OS === 'ios' || Platform.OS === 'android')) {
-    // @ts-ignore - __DEV__ and global variables are available in Expo
-    const bundlerHost = global?.location?.hostname || 
-                       global?.window?.location?.hostname ||
-                       'localhost';
-    
-    if (bundlerHost && bundlerHost !== 'localhost') {
-      return `http://${bundlerHost}:3004`;
-    }
+    // In dev you may still want to connect to the local bundler host. If so,
+    // set EXPO_PUBLIC_SOCKET_URL in your env or use a LAN IP. Otherwise the
+    // deployed Railway URL will be used.
+    const env = process.env.EXPO_PUBLIC_SOCKET_URL;
+    if (env) return env;
   }
-  
-  // Fallback
-  return 'http://localhost:3004';
+
+  // Fallback to deployed backend
+  return 'https://lynq-chat-app-production.up.railway.app';
 };
 
 /**
