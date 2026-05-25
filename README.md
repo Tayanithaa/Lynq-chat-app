@@ -140,7 +140,7 @@ lynq-chat/
 }
 ```
 
-## 🚨 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 
@@ -175,7 +175,7 @@ lynq-chat/
 - Test with multiple browser tabs to simulate different users
 - Use the "Switch User" button to test message alignment
 
-## 🎯 How to Test
+##  How to Test
 
 1. **Start Both Servers**:
    ```bash
